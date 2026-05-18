@@ -37,7 +37,6 @@ Thumbs.db
 ecosystem.config.local.cjs
 
 # Docker
-.dockerignore
 
 # 临时文件
 tmp/

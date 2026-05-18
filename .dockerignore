@@ -1,0 +1,25 @@
+# 忽略不需要的文件以减小构建上下文
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+*.md
+.env
+.env.*
+!.env.example
+!.env.vercel
+logs
+*.log
+dist
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+tmp
+temp
+*.tmp
+coverage
+.nyc_output
