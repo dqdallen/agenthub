@@ -5,9 +5,6 @@
   "installCommand": "npm install",
   "devCommand": "npm run dev",
   "regions": ["iad1"],
-  "env": {
-    "VITE_API_URL": "@vercel_env_api_url"
-  },
   "headers": [
     {
       "source": "/api/(.*)",
@@ -51,7 +48,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://your-railway-api.up.railway.app/api/:path*"
+      "destination": "https://agenthub.railway.app/api/:path*"
     }
   ]
 }
