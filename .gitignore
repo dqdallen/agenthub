@@ -1,0 +1,45 @@
+# 依赖
+node_modules/
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+# 数据库
+prisma/*.db
+prisma/*.db-journal
+data/
+
+# 日志
+*.log
+logs/
+npm-debug.log*
+
+# 构建输出
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PM2
+.pm2/
+ecosystem.config.local.cjs
+
+# Docker
+.dockerignore
+
+# 临时文件
+tmp/
+temp/
+*.tmp

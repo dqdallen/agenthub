@@ -1,0 +1,226 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // 开发环境使用 SQLite，生产环境改为 postgresql
+  // 示例 PostgreSQL URL: postgresql://username:password@localhost:5432/agenthub
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// 用户模型
+// ============================================
+model User {
+  id               Int       @id @default(autoincrement())
+  email            String    @unique
+  name             String
+  avatar           String?
+  password         String
+  role             String    @default("WORKER")
+  rating           Float     @default(5.0)
+  taskCount        Int       @default(0)
+  balance          Float     @default(0.00)
+  totalEarnings    Float     @default(0.00)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tasksPublished   Task[]      @relation("PublishedTasks")
+  tasksAssigned    Task[]      @relation("AssignedTasks")
+  bids             Bid[]
+  reviewsGiven     Review[]    @relation("Reviewer")
+  reviewsReceived  Review[]    @relation("Reviewee")
+  apiKeys          ApiKey[]
+  employerContracts Contract[] @relation("EmployerContracts")
+  workerContracts   Contract[] @relation("WorkerContracts")
+}
+
+// ============================================
+// API Key 模型（支持 HMAC 签名）
+// ============================================
+model ApiKey {
+  id            Int       @id @default(autoincrement())
+  key           String    @unique
+  name          String
+  hmacSecret    String? // HMAC 签名密钥
+  keyPrefix     String? // 密钥前缀（ak_xxxx）
+  
+  userId        Int
+  user          User      @relation(fields: [userId], references: [id])
+  status        String    @default("ACTIVE")
+  createdAt     DateTime  @default(now())
+  expiresAt     DateTime?
+}
+
+// ============================================
+// 任务模型
+// ============================================
+model Task {
+  id               Int      @id @default(autoincrement())
+  title            String
+  description      String
+  acceptanceCriteria String?
+  category         String
+  status           String   @default("OPEN")
+  urgency          String   @default("NORMAL")
+  
+  budgetMin        Float
+  budgetMax        Float
+  finalPrice       Float?
+  deadline         DateTime
+  
+  employerId       Int
+  employer         User     @relation("PublishedTasks", fields: [employerId], references: [id])
+  workerId         Int?
+  worker           User?    @relation("AssignedTasks", fields: [workerId], references: [id])
+  
+  skills           String   @default("[]")
+  attachments      String   @default("[]")
+  bidCount         Int      @default(0)
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  bids             Bid[]
+  reviews          Review[]
+  escrows          Escrow[]
+  messages         Message[]
+  // 新增反向关系
+  contract         Contract?
+}
+
+// ============================================
+// 投标模型
+// ============================================
+model Bid {
+  id         Int       @id @default(autoincrement())
+  price      Float
+  proposal   String
+  status     String    @default("PENDING")
+  
+  taskId     Int
+  task       Task      @relation(fields: [taskId], references: [id])
+  workerId   Int
+  worker     User      @relation(fields: [workerId], references: [id])
+  
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  // 新增反向关系
+  contract   Contract?
+}
+
+// ============================================
+// 评价模型
+// ============================================
+model Review {
+  id          Int       @id @default(autoincrement())
+  taskId      Int
+  task        Task      @relation(fields: [taskId], references: [id])
+  reviewerId  Int
+  reviewer    User      @relation("Reviewer", fields: [reviewerId], references: [id])
+  revieweeId  Int
+  reviewee    User      @relation("Reviewee", fields: [revieweeId], references: [id])
+  
+  taskRating  Int       @default(5)
+  commRating  Int       @default(5)
+  qualityRating Int     @default(5)
+  timeRating  Int       @default(5)
+  comment     String?
+  
+  createdAt   DateTime  @default(now())
+}
+
+// ============================================
+// 资金托管模型
+// ============================================
+model Escrow {
+  id         Int       @id @default(autoincrement())
+  taskId     Int
+  task       Task      @relation(fields: [taskId], references: [id])
+  amount     Float
+  status     String    @default("HELD")
+  releasedAt DateTime?
+  
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+// ============================================
+// 消息模型
+// ============================================
+model Message {
+  id         Int      @id @default(autoincrement())
+  taskId     Int
+  task       Task     @relation(fields: [taskId], references: [id])
+  senderId   Int
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+// ============================================
+// 新增：合同模型（类似 dealwork.ai 的 contracts）
+// ============================================
+model Contract {
+  id              Int       @id @default(autoincrement())
+  taskId          Int       @unique
+  task            Task      @relation(fields: [taskId], references: [id])
+  bidId           Int       @unique
+  bid             Bid       @relation(fields: [bidId], references: [id])
+  
+  employerId      Int
+  employer        User      @relation("EmployerContracts", fields: [employerId], references: [id])
+  workerId        Int
+  worker          User      @relation("WorkerContracts", fields: [workerId], references: [id])
+  
+  // 合同状态：OPEN → IN_PROGRESS → IN_REVIEW → COMPLETED / CANCELLED / DISPUTED
+  status          String    @default("IN_PROGRESS")
+  
+  price           Float
+  
+  // 时间线
+  startedAt       DateTime  @default(now())
+  reviewedAt      DateTime?
+  completedAt     DateTime?
+  
+  // 关联
+  deliverables    Deliverable[]
+  events          ContractEvent[]
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// ============================================
+// 新增：交付物模型（独立管理）
+// ============================================
+model Deliverable {
+  id             Int       @id @default(autoincrement())
+  contractId     Int
+  contract       Contract  @relation(fields: [contractId], references: [id])
+  
+  description    String
+  outputData     String? // JSON 或文本
+  version        Int       @default(1)
+  
+  submittedBy    Int
+  submittedAt    DateTime  @default(now())
+  
+  createdAt      DateTime  @default(now())
+}
+
+// ============================================
+// 新增：合同事件模型（状态机）
+// ============================================
+model ContractEvent {
+  id             Int       @id @default(autoincrement())
+  contractId     Int
+  contract       Contract  @relation(fields: [contractId], references: [id])
+  
+  type           String // START_WORK, SUBMIT_WORK, REQUEST_REVISION, APPROVE, REJECT, RELEASE_ESCROW, CANCEL
+  payload        String? // JSON
+  
+  createdById    Int
+  createdAt      DateTime  @default(now())
+}

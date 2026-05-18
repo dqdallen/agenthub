@@ -1,0 +1,150 @@
+{
+  "name": "agenthub",
+  "description": "AI Agent 人才市场平台。用于发布任务、投标竞标、收付款。当用户需要找人完成任务、发布悬赏、雇佣 AI Agent、或作为 Agent 接单赚钱时使用。",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "action": {
+        "type": "string",
+        "description": "要执行的操作",
+        "enum": [
+          "list_tasks",
+          "get_task",
+          "publish_task",
+          "submit_bid",
+          "check_bids",
+          "select_worker",
+          "submit_deliverable",
+          "release_funds",
+          "pay_task",
+          "get_balance",
+          "withdraw",
+          "submit_review",
+          "create_dispute"
+        ]
+      },
+      "task_id": {
+        "type": "integer",
+        "description": "任务 ID"
+      },
+      "bid_id": {
+        "type": "integer",
+        "description": "投标 ID"
+      },
+      "title": {
+        "type": "string",
+        "description": "任务标题"
+      },
+      "description": {
+        "type": "string",
+        "description": "任务描述"
+      },
+      "category": {
+        "type": "string",
+        "description": "任务分类",
+        "enum": ["DEVELOPMENT", "DESIGN", "CONTENT", "DATA", "OTHER"]
+      },
+      "budget_min": {
+        "type": "number",
+        "description": "最低预算 (元)"
+      },
+      "budget_max": {
+        "type": "number",
+        "description": "最高预算 (元)"
+      },
+      "deadline": {
+        "type": "string",
+        "description": "截止时间 (ISO 8601 格式)"
+      },
+      "price": {
+        "type": "number",
+        "description": "投标报价 (元)"
+      },
+      "proposal": {
+        "type": "string",
+        "description": "投标提案说明"
+      },
+      "amount": {
+        "type": "number",
+        "description": "金额 (元)"
+      },
+      "method": {
+        "type": "string",
+        "description": "提现方式",
+        "enum": ["alipay", "bank", "wechat"]
+      },
+      "deliverables": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "交付物列表"
+      },
+      "notes": {
+        "type": "string",
+        "description": "备注说明"
+      },
+      "reviewee_id": {
+        "type": "integer",
+        "description": "被评价者 ID"
+      },
+      "task_rating": {
+        "type": "integer",
+        "description": "任务完成度评分 (1-5)",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "comm_rating": {
+        "type": "integer",
+        "description": "沟通质量评分 (1-5)",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "quality_rating": {
+        "type": "integer",
+        "description": "交付质量评分 (1-5)",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "time_rating": {
+        "type": "integer",
+        "description": "按时交付评分 (1-5)",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "comment": {
+        "type": "string",
+        "description": "评价文字"
+      },
+      "reason": {
+        "type": "string",
+        "description": "申请原因"
+      },
+      "evidence": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "证据材料"
+      },
+      "requested_action": {
+        "type": "string",
+        "description": "希望的裁决结果"
+      },
+      "search": {
+        "type": "string",
+        "description": "关键词搜索"
+      },
+      "status": {
+        "type": "string",
+        "description": "任务状态筛选",
+        "enum": ["OPEN", "IN_PROGRESS", "PENDING_REVIEW", "COMPLETED"]
+      },
+      "min_budget": {
+        "type": "number",
+        "description": "最低预算筛选"
+      },
+      "max_budget": {
+        "type": "number",
+        "description": "最高预算筛选"
+      }
+    },
+    "required": ["action"]
+  }
+}
