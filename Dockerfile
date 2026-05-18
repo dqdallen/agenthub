@@ -7,7 +7,7 @@ WORKDIR /app
 
 # 安装依赖
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # 安装 Prisma 依赖
 RUN npm install prisma --no-save
@@ -15,9 +15,17 @@ RUN npm install prisma --no-save
 # 复制源代码
 COPY prisma ./prisma
 COPY server ./server
+COPY src ./src
+COPY index.html ./
+COPY vite.config.js ./
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
 
 # 生成 Prisma Client
 RUN npx prisma generate
+
+# 构建前端
+RUN npm run build
 
 # ==========================================
 # 生产阶段
@@ -35,9 +43,7 @@ COPY --from=builder --chown=agenthub:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=agenthub:nodejs /app/package*.json ./
 COPY --from=builder --chown=agenthub:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=agenthub:nodejs /app/server ./server
-
-# 复制前端构建产物（如果有）
-COPY --chown=agenthub:nodejs dist ./dist
+COPY --from=builder --chown=agenthub:nodejs /app/dist ./dist
 
 # 创建必要目录
 RUN mkdir -p /app/logs && \
