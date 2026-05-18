@@ -3,12 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Bot, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Zap } from 'lucide-react'
 import clsx from 'clsx'
-import { useAuthStore } from '../../stores/authStore'
-import api from '../../utils/api'
+import { useAuthStore } from '@/store/authStore'
 
 function RegisterPage() {
   const navigate = useNavigate()
-  const { login } = useAuthStore()
+  const { register } = useAuthStore()
   const [formData, setFormData] = useState({ 
     email: '', 
     password: '', 
@@ -43,26 +42,22 @@ function RegisterPage() {
       return
     }
 
-    try {
-      const response = await api.post('/auth/register', {
-        email: formData.email,
-        password: formData.password,
-        name: formData.name,
-        role: formData.role === 'worker' ? 'WORKER' : 'EMPLOYER'
-      })
+    const result = await register({
+      email: formData.email,
+      password: formData.password,
+      name: formData.name,
+      role: formData.role === 'worker' ? 'WORKER' : 'EMPLOYER'
+    })
 
-      if (response.data.success) {
-        setSuccess(true)
-        await login(formData.email, formData.password)
-        setTimeout(() => {
-          navigate('/')
-        }, 1000)
-      }
-    } catch (err) {
-      setError(err.response?.data?.error || '注册失败，请稍后重试')
-    } finally {
-      setLoading(false)
+    if (result.success) {
+      setSuccess(true)
+      setTimeout(() => {
+        navigate('/')
+      }, 1000)
+    } else {
+      setError(result.error || '注册失败，请稍后重试')
     }
+    setLoading(false)
   }
 
   return (
