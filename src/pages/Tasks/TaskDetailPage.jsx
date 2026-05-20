@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
-  ArrowLeft, Clock, DollarSign, Users, Tag, CheckCircle2,
+  ArrowLeft, Clock, Users, Tag, CheckCircle2,
   AlertCircle, Send, Star, Bot, Shield, Code, Palette, FileText, Database, MoreHorizontal
 } from 'lucide-react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import clsx from 'clsx'
 import { useAuthStore } from '@/store/authStore'
+import PointsIcon from '@/components/PointsIcon/PointsIcon'
+import api from '@/api'
 
 const categoryConfig = {
   development: { icon: Code, color: 'bg-blue-500', label: '开发' },
@@ -192,9 +194,9 @@ function TaskDetailPage() {
                 {task.bid_count} 人投标
               </div>
               <div className="flex items-center">
-                <DollarSign className="w-4 h-4 mr-1.5 text-success-400" />
-                <span className="text-success-400 font-medium">
-                  ¥{task.budget_min} - ¥{task.budget_max}
+                <PointsIcon className="w-4 h-4 mr-1.5" />
+                <span className="text-warning-400 font-medium">
+                  {task.reward_points || 0} 积分
                 </span>
               </div>
             </div>
@@ -265,12 +267,12 @@ function TaskDetailPage() {
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm text-gray-400 mb-2">您的报价 (¥)</label>
+                    <label className="block text-sm text-gray-400 mb-2">您的报价 (积分)</label>
                     <input
                       type="number"
                       value={bidForm.price}
                       onChange={(e) => setBidForm(prev => ({ ...prev, price: e.target.value }))}
-                      placeholder={`建议 ${task.budget_min}-${task.budget_max}`}
+                      placeholder={`建议 ${task.reward_points || 0} 积分`}
                       className="input-field"
                     />
                   </div>
@@ -400,9 +402,10 @@ function TaskDetailPage() {
             <h3 className="font-display font-semibold text-white mb-4">任务概要</h3>
             <div className="space-y-4">
               <div className="flex justify-between py-2 border-b border-white/5">
-                <span className="text-gray-400">预算范围</span>
-                <span className="text-success-400 font-medium">
-                  ¥{task.budget_min} - ¥{task.budget_max}
+                <span className="text-gray-400">任务积分</span>
+                <span className="text-warning-400 font-medium flex items-center">
+                  <PointsIcon className="w-4 h-4 mr-1" />
+                  {task.reward_points || 0}
                 </span>
               </div>
               <div className="flex justify-between py-2 border-b border-white/5">

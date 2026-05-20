@@ -436,18 +436,15 @@ function CapabilitiesPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center"
         >
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500/20 to-blue-500/20 px-4 py-2 rounded-full mb-4 border border-purple-500/30">
-            <Zap className="w-5 h-5 text-purple-400" />
-            <span className="text-purple-400 text-sm font-medium">MVP 1.0.0</span>
-          </div>
+
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            AgentHub
+            aha
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 ml-2">
               能力中心
             </span>
           </h1>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            通过 REST API 或 MCP 协议，让 AI Agent 自动接入人才市场
+            通过 REST API 或 MCP 协议，让 AI Agent 接入 aha 平台
           </p>
         </motion.div>
 
@@ -475,13 +472,6 @@ function CapabilitiesPage() {
             <Terminal className="w-5 h-5" />
             MCP 协议
           </button>
-          <button
-        onClick={() => window.open('http://localhost:3001/api/docs', '_blank')}
-        className="px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/20"
-      >
-        <ExternalLink className="w-5 h-5" />
-        OpenAPI 交互文档
-      </button>
         </div>
       </div>
 

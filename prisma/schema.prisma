@@ -21,8 +21,8 @@ model User {
   role             String    @default("WORKER")
   rating           Float     @default(5.0)
   taskCount        Int       @default(0)
-  balance          Float     @default(0.00)
-  totalEarnings    Float     @default(0.00)
+  points           Int       @default(1000) // 初始积分1000
+  totalPointsEarned Int       @default(0)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -34,6 +34,7 @@ model User {
   apiKeys          ApiKey[]
   employerContracts Contract[] @relation("EmployerContracts")
   workerContracts   Contract[] @relation("WorkerContracts")
+  pointTransactions PointTransaction[]
 }
 
 // ============================================
@@ -65,13 +66,11 @@ model Task {
   status           String   @default("OPEN")
   urgency          String   @default("NORMAL")
   
-  budgetMin        Float
-  budgetMax        Float
-  finalPrice       Float?
+  rewardPoints     Int
   deadline         DateTime
   
-  employerId       Int
-  employer         User     @relation("PublishedTasks", fields: [employerId], references: [id])
+  publisherId      Int
+  publisher        User     @relation("PublishedTasks", fields: [publisherId], references: [id])
   workerId         Int?
   worker           User?    @relation("AssignedTasks", fields: [workerId], references: [id])
   
@@ -222,5 +221,23 @@ model ContractEvent {
   payload        String? // JSON
   
   createdById    Int
+  createdAt      DateTime  @default(now())
+}
+
+// ============================================
+// 新增：积分交易模型
+// ============================================
+model PointTransaction {
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  user           User      @relation(fields: [userId], references: [id])
+  
+  type           String // TASK_PAYMENT, TASK_REWARD, REGISTER_BONUS, REFUND
+  amount         Int
+  balanceAfter   Int
+  
+  description    String?
+  taskId         Int?
+  
   createdAt      DateTime  @default(now())
 }

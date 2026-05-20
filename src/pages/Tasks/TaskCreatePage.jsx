@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
-  ArrowLeft, ArrowRight, Check, DollarSign, Clock, Tag,
+  ArrowLeft, ArrowRight, Check, Clock, Tag,
   Code, Palette, FileText, Database, MoreHorizontal, AlertCircle
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api'
 import { useAuthStore } from '@/store/authStore'
+import PointsIcon from '@/components/PointsIcon/PointsIcon'
 
 const categories = [
   { id: 'DEVELOPMENT', name: '开发', icon: Code, desc: '网站、应用、API开发' },
@@ -43,8 +44,7 @@ function TaskCreatePage() {
     description: '',
     acceptanceCriteria: '',
     skills: [],
-    budgetMin: '',
-    budgetMax: '',
+    rewardPoints: '',
     deadline: '',
     urgency: 'NORMAL',
   })
@@ -80,11 +80,8 @@ function TaskCreatePage() {
     }
     
     if (step === 3) {
-      if (!formData.budgetMin) newErrors.budgetMin = '请设置最低预算'
-      if (!formData.budgetMax) newErrors.budgetMax = '请设置最高预算'
-      if (formData.budgetMin && formData.budgetMax && Number(formData.budgetMax) < Number(formData.budgetMin)) {
-        newErrors.budgetMax = '最高预算不能小于最低预算'
-      }
+      if (!formData.rewardPoints) newErrors.rewardPoints = '请设置积分奖励'
+      if (Number(formData.rewardPoints) < 10) newErrors.rewardPoints = '积分奖励至少10分'
       if (!formData.deadline) newErrors.deadline = '请设置截止时间'
       else if (new Date(formData.deadline) <= new Date()) {
         newErrors.deadline = '截止时间至少是当前时间1小时后'
@@ -121,8 +118,7 @@ function TaskCreatePage() {
           description: formData.description,
           acceptanceCriteria: formData.acceptanceCriteria,
           skills: formData.skills,
-          budgetMin: Number(formData.budgetMin),
-          budgetMax: Number(formData.budgetMax),
+          rewardPoints: Number(formData.rewardPoints),
           deadline: new Date(formData.deadline).toISOString(),
           urgency: formData.urgency,
           status: 'OPEN'
@@ -412,51 +408,27 @@ function TaskCreatePage() {
               预算与时间
             </h2>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  最低预算 <span className="text-red-400">*</span>
-                </label>
-                <div className="relative">
-                  <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input
-                    type="number"
-                    value={formData.budgetMin}
-                    onChange={(e) => updateField('budgetMin', e.target.value)}
-                    placeholder="0"
-                    className="input-field pl-12"
-                    min="1"
-                  />
-                </div>
-                {errors.budgetMin && (
-                  <span className="text-sm text-red-400 flex items-center mt-1">
-                    <AlertCircle className="w-3 h-3 mr-1" />
-                    {errors.budgetMin}
-                  </span>
-                )}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                积分奖励 <span className="text-red-400">*</span>
+              </label>
+              <div className="relative">
+                <PointsIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <input
+                  type="number"
+                  value={formData.rewardPoints}
+                  onChange={(e) => updateField('rewardPoints', e.target.value)}
+                  placeholder="请设置积分奖励（至少10分）"
+                  className="input-field pl-12"
+                  min="10"
+                />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  最高预算 <span className="text-red-400">*</span>
-                </label>
-                <div className="relative">
-                  <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input
-                    type="number"
-                    value={formData.budgetMax}
-                    onChange={(e) => updateField('budgetMax', e.target.value)}
-                    placeholder="0"
-                    className="input-field pl-12"
-                    min="1"
-                  />
-                </div>
-                {errors.budgetMax && (
-                  <span className="text-sm text-red-400 flex items-center mt-1">
-                    <AlertCircle className="w-3 h-3 mr-1" />
-                    {errors.budgetMax}
-                  </span>
-                )}
-              </div>
+              {errors.rewardPoints && (
+                <span className="text-sm text-red-400 flex items-center mt-1">
+                  <AlertCircle className="w-3 h-3 mr-1" />
+                  {errors.rewardPoints}
+                </span>
+              )}
             </div>
 
             <div>
@@ -484,13 +456,13 @@ function TaskCreatePage() {
             {/* Budget Tips */}
             <div className="bg-dark-700 rounded-xl p-4 border border-dark-600">
               <h4 className="font-medium text-white mb-3 flex items-center">
-                💡 预算建议
+                💡 积分建议
               </h4>
               <ul className="text-sm text-gray-400 space-y-2">
-                <li>• 开发类任务：简单功能500-2000元，复杂系统5000-20000元</li>
-                <li>• 设计类任务：单页面200-1000元，整站设计3000-10000元</li>
-                <li>• 内容类任务：文章撰写50-500元/篇，报告撰写500-3000元</li>
-                <li>• 数据类任务：数据采集100-1000元，分析报告1000-5000元</li>
+                <li>• 开发类任务：简单功能50-200分，复杂系统500-2000分</li>
+                <li>• 设计类任务：单页面20-100分，整站设计300-1000分</li>
+                <li>• 内容类任务：文章撰写5-50分/篇，报告撰写50-300分</li>
+                <li>• 数据类任务：数据采集10-100分，分析报告100-500分</li>
               </ul>
             </div>
           </motion.div>
@@ -520,9 +492,10 @@ function TaskCreatePage() {
                   <span className="text-white">{categories.find(c => c.id === formData.category)?.name}</span>
                 </div>
                 <div className="flex justify-between py-3 border-b border-dark-600">
-                  <span className="text-gray-400">预算范围</span>
-                  <span className="text-success-400 font-display font-semibold">
-                    ¥{formData.budgetMin} - ¥{formData.budgetMax}
+                  <span className="text-gray-400">积分奖励</span>
+                  <span className="text-warning-400 font-display font-semibold flex items-center">
+                    <PointsIcon className="w-4 h-4 mr-1" />
+                    {formData.rewardPoints}
                   </span>
                 </div>
                 <div className="flex justify-between py-3 border-b border-dark-600">
@@ -566,7 +539,7 @@ function TaskCreatePage() {
             
             <div className="bg-primary-500/10 rounded-xl p-4 border border-primary-500/30">
               <p className="text-sm text-primary-300">
-                💡 <strong>提示：</strong>发布任务后，资金将托管到平台账户，直到任务验收通过才会释放给执行者。
+                💡 <strong>提示：</strong>发布任务后，积分将锁定，直到任务验收通过才会释放给执行者。
                 这确保了双方权益，让您安心发布任务。
               </p>
             </div>

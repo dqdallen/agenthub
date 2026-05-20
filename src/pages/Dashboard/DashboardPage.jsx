@@ -2,28 +2,16 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
-  LayoutDashboard, FileText, DollarSign, User, Settings, 
+  LayoutDashboard, FileText, User, Settings, 
   Plus, Clock, CheckCircle2, AlertCircle, TrendingUp, Star,
   Briefcase, ArrowUpRight, ArrowDownRight, Bot, Key, BookOpen
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import clsx from 'clsx'
 import { format } from 'date-fns'
-
-const mockStats = {
-  total_earnings: 12580,
-  pending_earnings: 3200,
-  completed_tasks: 45,
-  active_tasks: 8,
-  rating: 4.8,
-  win_rate: 78,
-}
-
-const mockRecentTasks = [
-  { id: 1, title: '开发商品推荐系统', price: 6000, status: 'in_progress', deadline: '2026-06-01' },
-  { id: 2, title: '数据可视化报告', price: 2500, status: 'pending_review', deadline: '2026-05-20' },
-  { id: 3, title: 'API接口开发', price: 1800, status: 'completed', deadline: '2026-05-10' },
-]
+import api from '@/api'
+import PointsIcon from '@/components/PointsIcon/PointsIcon'
+import { useEffect } from 'react'
 
 const statusConfig = {
   open: { color: 'bg-success-500/20 text-success-400', label: '可投标' },
@@ -40,6 +28,53 @@ function DashboardPage() {
   const navigate = useNavigate()
   const { user, isAuthenticated } = useAuthStore()
   const [activeTab, setActiveTab] = useState('overview')
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    points: 0,
+    totalPointsEarned: 0,
+    completedTasks: 0,
+    activeTasks: 0,
+  })
+  const [recentTasks, setRecentTasks] = useState([])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchDashboardData()
+    }
+  }, [isAuthenticated])
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true)
+      
+      // 先获取用户积分
+      const balanceRes = await api.get('/points/balance')
+      if (balanceRes.data.success) {
+        setStats(prev => ({
+          ...prev,
+          points: balanceRes.data.data.points,
+          totalPointsEarned: balanceRes.data.data.totalPointsEarned,
+        }))
+      }
+      
+      // 再获取任务列表
+      const tasksRes = await api.get('/tasks/my', { params: { type: 'all', limit: 5 } })
+      if (tasksRes.data.success && Array.isArray(tasksRes.data.data)) {
+        const tasks = tasksRes.data.data
+        setStats(prev => ({
+          ...prev,
+          completedTasks: tasks.filter(t => t.status === 'COMPLETED').length,
+          activeTasks: tasks.filter(t => t.status === 'IN_PROGRESS').length,
+        }))
+        setRecentTasks(tasks.slice(0, 5))
+      }
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error)
+      // 如果API请求失败，至少显示默认数据
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (!isAuthenticated) {
     navigate('/login')
@@ -50,7 +85,7 @@ function DashboardPage() {
     { id: 'overview', label: '概览', icon: LayoutDashboard },
     { id: 'tasks', label: '我的任务', icon: FileText },
     { id: 'agents', label: 'Agent管理', icon: Bot },
-    { id: 'earnings', label: '收益管理', icon: DollarSign },
+    { id: 'earnings', label: '积分记录', icon: PointsIcon },
     { id: 'profile', label: '个人设置', icon: User },
   ]
 
@@ -108,16 +143,17 @@ function DashboardPage() {
             <div className="card p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-12 h-12 bg-success-500/20 rounded-xl flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-success-400" />
+                  <PointsIcon className="w-6 h-6" />
                 </div>
-                <span className="text-xs text-gray-500">总收入</span>
+                <span className="text-xs text-gray-500">剩余积分</span>
               </div>
-              <div className="font-display text-3xl font-bold text-white">
-                ¥{mockStats.total_earnings.toLocaleString()}
+              <div className="font-display text-3xl font-bold text-white flex items-center">
+                <PointsIcon className="w-6 h-6 mr-2" />
+                {stats.points.toLocaleString()}
               </div>
               <div className="flex items-center text-sm text-success-400 mt-2">
                 <TrendingUp className="w-4 h-4 mr-1" />
-                +12.5%
+                可用
               </div>
             </div>
 
@@ -126,13 +162,14 @@ function DashboardPage() {
                 <div className="w-12 h-12 bg-warning-500/20 rounded-xl flex items-center justify-center">
                   <Clock className="w-6 h-6 text-warning-400" />
                 </div>
-                <span className="text-xs text-gray-500">待结算</span>
+                <span className="text-xs text-gray-500">累计获得</span>
               </div>
-              <div className="font-display text-3xl font-bold text-white">
-                ¥{mockStats.pending_earnings.toLocaleString()}
+              <div className="font-display text-3xl font-bold text-white flex items-center">
+                <PointsIcon className="w-6 h-6 mr-2" />
+                {stats.totalPointsEarned.toLocaleString()}
               </div>
               <div className="text-sm text-gray-500 mt-2">
-                3 笔进行中
+                积分
               </div>
             </div>
 
@@ -144,10 +181,10 @@ function DashboardPage() {
                 <span className="text-xs text-gray-500">已完成</span>
               </div>
               <div className="font-display text-3xl font-bold text-white">
-                {mockStats.completed_tasks}
+                {stats.completedTasks}
               </div>
               <div className="text-sm text-gray-500 mt-2">
-                本月 +8
+                任务
               </div>
             </div>
 
@@ -159,10 +196,10 @@ function DashboardPage() {
                 <span className="text-xs text-gray-500">进行中</span>
               </div>
               <div className="font-display text-3xl font-bold text-white">
-                {mockStats.active_tasks}
+                {stats.activeTasks}
               </div>
               <div className="text-sm text-gray-500 mt-2">
-                5 个待处理
+                任务
               </div>
             </div>
           </div>
@@ -178,8 +215,8 @@ function DashboardPage() {
                 </Link>
               </div>
               <div className="space-y-4">
-                {mockRecentTasks.map(task => {
-                  const status = statusConfig[task.status]
+                {recentTasks.length > 0 ? recentTasks.map(task => {
+                  const status = statusConfig[task.status?.toLowerCase()] || statusConfig[task.status] || statusConfig.open
                   return (
                     <Link
                       key={task.id}
@@ -193,14 +230,25 @@ function DashboardPage() {
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-success-400 font-medium">¥{task.price}</span>
+                        <span className="text-warning-400 font-medium flex items-center">
+                          <PointsIcon className="w-3 h-3 mr-1" />
+                          {task.rewardPoints || 0} 积分
+                        </span>
                         <span className="text-gray-500">
                           截止 {format(new Date(task.deadline), 'MM/dd')}
                         </span>
                       </div>
                     </Link>
                   )
-                })}
+                }) : (
+                  <div className="text-center py-8">
+                    <FileText className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-500">暂无任务</p>
+                    <Link to="/tasks" className="text-primary-400 hover:text-primary-300 text-sm mt-2 inline-block">
+                      去发现任务
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -260,30 +308,26 @@ function DashboardPage() {
               <div className="text-center p-6 bg-dark-700/50 rounded-xl">
                 <div className="flex items-center justify-center mb-3">
                   <Star className="w-6 h-6 text-warning-400 mr-2" />
-                  <span className="text-4xl font-display font-bold text-white">
-                    {mockStats.rating}
-                  </span>
+                  <span className="text-4xl font-display font-bold text-white">5.0</span>
                 </div>
                 <div className="text-gray-400">平均评分</div>
-                <div className="text-sm text-gray-500 mt-1">基于45个评价</div>
+                <div className="text-sm text-gray-500 mt-1">欢迎评价</div>
               </div>
               <div className="text-center p-6 bg-dark-700/50 rounded-xl">
                 <div className="flex items-center justify-center mb-3">
                   <TrendingUp className="w-6 h-6 text-success-400 mr-2" />
-                  <span className="text-4xl font-display font-bold text-white">
-                    {mockStats.win_rate}%
-                  </span>
+                  <span className="text-4xl font-display font-bold text-white">0%</span>
                 </div>
                 <div className="text-gray-400">中标率</div>
-                <div className="text-sm text-gray-500 mt-1">投标57次，中标45次</div>
+                <div className="text-sm text-gray-500 mt-1">开始投标吧</div>
               </div>
               <div className="text-center p-6 bg-dark-700/50 rounded-xl">
                 <div className="flex items-center justify-center mb-3">
                   <Clock className="w-6 h-6 text-primary-400 mr-2" />
-                  <span className="text-4xl font-display font-bold text-white">2.3h</span>
+                  <span className="text-4xl font-display font-bold text-white">--</span>
                 </div>
                 <div className="text-gray-400">平均响应时间</div>
-                <div className="text-sm text-gray-500 mt-1">投标回复速度</div>
+                <div className="text-sm text-gray-500 mt-1">待活跃</div>
               </div>
             </div>
           </div>
@@ -342,10 +386,13 @@ function DashboardPage() {
               </div>
               <div className="bg-dark-700/50 rounded-xl p-4 border border-dark-600">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400 text-sm">累计收益</span>
-                  <DollarSign className="w-4 h-4 text-success-400" />
+                  <span className="text-gray-400 text-sm">累计获得</span>
+                  <PointsIcon className="w-4 h-4 text-success-400" />
                 </div>
-                <div className="text-2xl font-display font-bold text-white">¥2,501.80</div>
+                <div className="text-2xl font-display font-bold text-white flex items-center">
+                  <PointsIcon className="w-5 h-5 mr-1" />
+                  {stats.totalPointsEarned.toLocaleString()}
+                </div>
               </div>
             </div>
 
@@ -389,10 +436,10 @@ function DashboardPage() {
           animate={{ opacity: 1, y: 0 }}
           className="card p-6"
         >
-          <h2 className="font-display font-semibold text-white mb-6">收益管理</h2>
+          <h2 className="font-display font-semibold text-white mb-6">积分记录</h2>
           <div className="text-center py-12">
-            <DollarSign className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400 mb-4">暂无收益记录</p>
+            <PointsIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400 mb-4">暂无积分记录</p>
             <Link to="/tasks" className="btn-primary">
               开始接单
             </Link>

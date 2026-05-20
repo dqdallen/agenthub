@@ -129,7 +129,19 @@ app.post('/api/auth/register', async (req, res) => {
         email,
         name,
         password: hashed,
-        role: role || 'WORKER'
+        role: role || 'WORKER',
+        points: 1000, // 初始积分1000
+      }
+    });
+
+    // 记录初始积分交易
+    await prisma.pointTransaction.create({
+      data: {
+        userId: user.id,
+        type: 'REGISTER_BONUS',
+        amount: 1000,
+        balanceAfter: 1000,
+        description: '注册赠送积分'
       }
     });
 
@@ -165,7 +177,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/me', authenticate, async (req, res) => {
   const user = await prisma.user.findFirst({
     where: { id: req.user.id },
-    select: { id: true, email: true, name: true, role: true, rating: true, balance: true, totalEarnings: true }
+    select: { id: true, email: true, name: true, role: true, rating: true, points: true, totalPointsEarned: true }
   });
   res.json({ success: true, data: user });
 });
@@ -243,35 +255,68 @@ app.post('/api/agents/keys', authenticate, async (req, res) => {
 // 任务 API
 // ===========================
 app.get('/api/tasks', async (req, res) => {
-  const { category, status = 'OPEN', search, page = 1, limit = 20 } = req.query;
+  console.log('=== [API] GET /api/tasks called ===');
+  console.log('Query params:', req.query);
+  
+  const { category, status = 'OPEN', search, sort = 'newest', page = 1, limit = 20 } = req.query;
+  
   const where = { status };
-  if (category) where.category = category;
+  
+  if (category) {
+    where.category = category;
+    console.log('Category filter applied:', category);
+  }
+  
   if (search) {
     where.OR = [
       { title: { contains: search } },
       { description: { contains: search } }
     ];
+    console.log('Search filter applied:', search);
   }
 
-  const [tasks, total] = await Promise.all([
-    prisma.task.findMany({
-      where,
-      include: {
-        employer: { select: { id: true, name: true, rating: true } },
-        bids: true
-      },
-      skip: (page - 1) * limit,
-      take: parseInt(limit),
-      orderBy: { createdAt: 'desc' }
-    }),
-    prisma.task.count({ where })
-  ]);
+  let orderBy = { createdAt: 'desc' };
+  
+  if (sort === 'budget' || sort === 'reward') {
+    orderBy = { rewardPoints: 'desc' };
+    console.log('Sorting by rewardPoints descending');
+  } else if (sort === 'newest') {
+    orderBy = { createdAt: 'desc' };
+    console.log('Sorting by newest (createdAt descending)');
+  } else {
+    console.log('Unknown sort parameter, using default newest:', sort);
+  }
 
-  res.json({
-    success: true,
-    data: tasks,
-    pagination: { page: parseInt(page), limit: parseInt(limit), total }
-  });
+  console.log('Where clause:', where);
+  console.log('OrderBy:', orderBy);
+  console.log('Pagination - page:', page, 'limit:', limit);
+
+  try {
+    const [tasks, total] = await Promise.all([
+      prisma.task.findMany({
+        where,
+        include: {
+          publisher: { select: { id: true, name: true, rating: true } },
+          bids: true
+        },
+        skip: (page - 1) * limit,
+        take: parseInt(limit),
+        orderBy
+      }),
+      prisma.task.count({ where })
+    ]);
+
+    console.log('Found', tasks.length, 'tasks out of', total, 'total');
+    
+    res.json({
+      success: true,
+      data: tasks,
+      pagination: { page: parseInt(page), limit: parseInt(limit), total }
+    });
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch tasks', message: error.message });
+  }
 });
 
 app.get('/api/tasks/my', authenticate, async (req, res) => {
@@ -279,13 +324,13 @@ app.get('/api/tasks/my', authenticate, async (req, res) => {
   let where = {};
 
   if (type === 'published') {
-    where = { employerId: req.user.id };
+    where = { publisherId: req.user.id };
   } else if (type === 'assigned') {
     where = { workerId: req.user.id };
   } else {
     where = {
       OR: [
-        { employerId: req.user.id },
+        { publisherId: req.user.id },
         { workerId: req.user.id }
       ]
     };
@@ -293,7 +338,7 @@ app.get('/api/tasks/my', authenticate, async (req, res) => {
 
   const tasks = await prisma.task.findMany({
     where,
-    include: { employer: true, worker: true, bids: true }
+    include: { publisher: true, worker: true, bids: true }
   });
   res.json({ success: true, data: tasks });
 });
@@ -302,31 +347,41 @@ app.get('/api/tasks/:id', async (req, res) => {
   const task = await prisma.task.findFirst({
     where: { id: parseInt(req.params.id) },
     include: {
-      employer: { select: { id: true, name: true, rating: true } },
+      publisher: { select: { id: true, name: true, rating: true } },
       worker: { select: { id: true, name: true, rating: true } },
-      bids: { include: { worker: { select: { id: true, name: true, rating: true } } } },
-      escrows: true
+      bids: { include: { worker: { select: { id: true, name: true, rating: true } } } }
     }
   });
   res.json({ success: true, data: task });
 });
 
 app.post('/api/tasks', authenticate, async (req, res) => {
-  const { title, description, category, budgetMin, budgetMax, deadline, skills } = req.body;
-  const task = await prisma.task.create({
-    data: {
-      title,
-      description,
-      category,
-      budgetMin: parseFloat(budgetMin),
-      budgetMax: parseFloat(budgetMax),
-      deadline: new Date(deadline),
-      skills: JSON.stringify(skills || []),
-      employerId: req.user.id,
-      status: 'OPEN'
+  try {
+    const { title, description, category, rewardPoints, deadline, skills } = req.body;
+    
+    // 验证必填字段
+    if (!title || !description || !category || !rewardPoints || !deadline) {
+      return res.status(400).json({ success: false, error: '缺少必填字段' });
     }
-  });
-  res.json({ success: true, data: task });
+    
+    // 使用 connect 建立关系
+    const task = await prisma.task.create({
+      data: {
+        title,
+        description,
+        category,
+        rewardPoints: parseInt(rewardPoints),
+        deadline: new Date(deadline),
+        skills: JSON.stringify(skills || []),
+        publisher: { connect: { id: req.user.id } },
+        status: 'OPEN'
+      }
+    });
+    res.json({ success: true, data: task });
+  } catch (error) {
+    console.error('创建任务失败:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // ===========================
@@ -379,7 +434,7 @@ app.post('/api/tasks/:id/bids/:bidId/accept', authenticate, async (req, res) => 
   const bidId = parseInt(req.params.bidId);
 
   const task = await prisma.task.findFirst({ where: { id: taskId } });
-  if (!task || task.employerId !== req.user.id) {
+  if (!task || task.publisherId !== req.user.id) {
     return res.status(403).json({ error: '无权操作' });
   }
 
@@ -397,7 +452,7 @@ app.post('/api/tasks/:id/bids/:bidId/accept', authenticate, async (req, res) => 
   // 2. 更新任务
   await prisma.task.update({
     where: { id: taskId },
-    data: { workerId: bid.workerId, status: 'IN_PROGRESS', finalPrice: bid.price }
+    data: { workerId: bid.workerId, status: 'IN_PROGRESS' }
   });
 
   // 3. 创建合同（类似 dealwork.ai）
@@ -405,7 +460,7 @@ app.post('/api/tasks/:id/bids/:bidId/accept', authenticate, async (req, res) => 
     data: {
       taskId,
       bidId,
-      employerId: task.employerId,
+      employerId: task.publisherId,
       workerId: bid.workerId,
       price: bid.price,
       status: 'IN_PROGRESS'
@@ -417,7 +472,7 @@ app.post('/api/tasks/:id/bids/:bidId/accept', authenticate, async (req, res) => 
     data: {
       contractId: contract.id,
       type: 'START_WORK',
-      createdById: task.employerId
+      createdById: task.publisherId
     }
   });
 
@@ -554,7 +609,7 @@ app.post('/api/contracts/:id/events', authenticate, async (req, res) => {
     case 'APPROVE':
     case 'RELEASE_ESCROW':
       if (!isEmployer) {
-        return res.status(403).json({ error: '只有雇主可以批准' });
+        return res.status(403).json({ error: '只有发布者可以批准' });
       }
 
       // 1. 更新合同状态
@@ -564,35 +619,54 @@ app.post('/api/contracts/:id/events', authenticate, async (req, res) => {
       });
 
       // 2. 更新任务状态
-      await prisma.task.update({
+      const task = await prisma.task.update({
         where: { id: contract.taskId },
-        data: { status: 'COMPLETED' }
+        data: { status: 'COMPLETED' },
+        include: { publisher: true }
       });
 
-      // 3. 如果有托管资金，释放（平台抽成10%）
-      const escrow = await prisma.escrow.findFirst({
-        where: { taskId: contract.taskId, status: 'HELD' }
+      // 3. 积分转账（从发布者转到工作者）
+      const rewardPoints = task.rewardPoints;
+      
+      // 从发布者扣除积分
+      await prisma.user.update({
+        where: { id: contract.employerId },
+        data: { points: { decrement: rewardPoints } }
       });
 
-      if (escrow) {
-        const platformFee = escrow.amount * 0.1;
-        const workerAmount = escrow.amount - platformFee;
+      // 给工作者增加积分
+      await prisma.user.update({
+        where: { id: contract.workerId },
+        data: { 
+          points: { increment: rewardPoints },
+          totalPointsEarned: { increment: rewardPoints }
+        }
+      });
 
-        await prisma.escrow.update({
-          where: { id: escrow.id },
-          data: { status: 'RELEASED', releasedAt: new Date() }
-        });
+      // 记录积分交易记录
+      await prisma.pointTransaction.create({
+        data: {
+          userId: contract.workerId,
+          type: 'TASK_REWARD',
+          amount: rewardPoints,
+          balanceAfter: (await prisma.user.findUnique({ where: { id: contract.workerId } })).points,
+          description: `完成任务 #${task.id} 获得积分`,
+          taskId: task.id
+        }
+      });
 
-        await prisma.user.update({
-          where: { id: contract.workerId },
-          data: {
-            balance: { increment: workerAmount },
-            totalEarnings: { increment: workerAmount }
-          }
-        });
+      await prisma.pointTransaction.create({
+        data: {
+          userId: contract.employerId,
+          type: 'TASK_PAYMENT',
+          amount: -rewardPoints,
+          balanceAfter: (await prisma.user.findUnique({ where: { id: contract.employerId } })).points,
+          description: `发布任务 #${task.id} 支付积分`,
+          taskId: task.id
+        }
+      });
 
-        result.payment = { total: escrow.amount, workerAmount, platformFee };
-      }
+      result.payment = { rewardPoints, workerId: contract.workerId };
 
       // 4. 同步创建评价（如果有 review 参数）
       if (review) {
@@ -705,94 +779,34 @@ app.post('/api/tasks/:id/messages', authenticate, async (req, res) => {
 });
 
 // ===========================
-// 支付 API
+// 积分 API
 // ===========================
-app.post('/api/payments/pay-task', authenticate, async (req, res) => {
-  const { taskId, amount } = req.body;
-
-  const task = await prisma.task.findFirst({ where: { id: parseInt(taskId) } });
-  if (!task || task.employerId !== req.user.id) {
-    return res.status(403).json({ error: '无权操作' });
-  }
-
-  const escrow = await prisma.escrow.create({
-    data: {
-      taskId: parseInt(taskId),
-      amount: parseFloat(amount),
-      status: 'HELD'
-    }
-  });
-
-  res.json({ success: true, data: escrow });
-});
-
-app.get('/api/payments/balance', authenticate, async (req, res) => {
+app.get('/api/points/balance', authenticate, async (req, res) => {
   const user = await prisma.user.findFirst({
     where: { id: req.user.id },
-    select: { id: true, balance: true, totalEarnings: true }
+    select: { id: true, points: true, totalPointsEarned: true }
   });
   res.json({ success: true, data: user });
 });
 
-app.post('/api/payments/withdraw', authenticate, async (req, res) => {
-  const { amount, method } = req.body;
-  const user = await prisma.user.findFirst({ where: { id: req.user.id } });
-
-  if (user.balance < parseFloat(amount)) {
-    return res.status(400).json({ error: '余额不足' });
-  }
-
-  await prisma.user.update({
-    where: { id: req.user.id },
-    data: { balance: { decrement: parseFloat(amount) } }
+app.get('/api/points/transactions', authenticate, async (req, res) => {
+  const { page = 1, limit = 20 } = req.query;
+  const transactions = await prisma.pointTransaction.findMany({
+    where: { userId: req.user.id },
+    orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * limit,
+    take: parseInt(limit)
   });
-
-  res.json({
-    success: true,
-    data: { message: '提现申请已提交，将在 1-3 个工作日内处理', amount, method }
-  });
+  res.json({ success: true, data: transactions });
 });
 
-app.post('/api/payments/partial-refund', authenticate, async (req, res) => {
-  const { taskId, refundAmount, reason } = req.body;
-
-  const task = await prisma.task.findFirst({
-    where: { id: parseInt(taskId) },
-    include: { escrows: true }
+// 为了兼容旧接口，保持原来的路径但指向新的积分功能
+app.get('/api/payments/balance', authenticate, async (req, res) => {
+  const user = await prisma.user.findFirst({
+    where: { id: req.user.id },
+    select: { id: true, points: true, totalPointsEarned: true }
   });
-
-  if (!task || task.employerId !== req.user.id) {
-    return res.status(403).json({ error: '无权操作' });
-  }
-
-  const escrow = task.escrows.find(e => e.status === 'HELD');
-  if (!escrow) {
-    return res.status(400).json({ error: '没有托管资金' });
-  }
-
-  const refundAmt = parseFloat(refundAmount);
-  const workerAmt = escrow.amount - refundAmt - (escrow.amount * 0.05);
-
-  await prisma.escrow.update({
-    where: { id: escrow.id },
-    data: { status: 'RELEASED', releasedAt: new Date() }
-  });
-
-  await prisma.user.update({
-    where: { id: task.workerId },
-    data: { balance: { increment: workerAmt } }
-  });
-
-  res.json({
-    success: true,
-    data: {
-      totalEscrow: escrow.amount,
-      refundToEmployer: refundAmt,
-      platformFee: escrow.amount * 0.05,
-      paidToWorker: workerAmt,
-      reason
-    }
-  });
+  res.json({ success: true, data: user });
 });
 
 // ===========================
@@ -802,7 +816,7 @@ app.post('/api/reviews/:taskId', authenticate, async (req, res) => {
   const { taskId } = req.params;
   const task = await prisma.task.findFirst({ where: { id: parseInt(taskId) } });
 
-  const revieweeId = task.employerId === req.user.id ? task.workerId : task.employerId;
+  const revieweeId = task.publisherId === req.user.id ? task.workerId : task.publisherId;
 
   const review = await prisma.review.create({
     data: {
@@ -823,6 +837,20 @@ app.post('/api/reviews/:taskId', authenticate, async (req, res) => {
 // ===========================
 // OpenAPI 文档和 Swagger
 // ===========================
+// ==============================
+// 统计 API
+// ==============================
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: { id: true, name: true, points: true }
+    });
+    res.json({ success: true, data: users });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get('/api/openapi.json', (req, res) => {
   res.json({
     openapi: '3.0.3',

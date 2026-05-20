@@ -17,7 +17,7 @@ const categories = [
 
 const sortOptions = [
   { value: 'newest', label: '最新发布' },
-  { value: 'budget', label: '预算最高' },
+  { value: 'budget', label: '积分最高' },
 ]
 
 const ITEMS_PER_PAGE = 12
@@ -43,12 +43,16 @@ function TaskListPage() {
     const cat = searchParams.get('category') || ''
     const search = searchParams.get('search') || ''
     const page = parseInt(searchParams.get('page') || '1')
+    const sort = searchParams.get('sort') || 'newest'
+    
+    console.log('=== URL params changed ===', { category: cat, search, page, sort })
     
     setFilters(prev => ({
       ...prev,
       category: cat,
       search: search,
       page: page,
+      sort: sort,
     }))
   }, [searchParams])
 
@@ -158,7 +162,14 @@ function TaskListPage() {
   }
 
   const handleSortChange = (value) => {
-    setFilters({ ...filters, sort: value })
+    console.log('Sort changed to:', value)
+    const newFilters = { ...filters, sort: value, page: 1 }
+    setFilters(newFilters)
+    const params = {}
+    if (filters.category) params.category = filters.category
+    if (filters.search) params.search = filters.search
+    params.sort = value
+    setSearchParams(params)
   }
 
   const handlePageChange = (newPage) => {
@@ -212,7 +223,7 @@ function TaskListPage() {
             发现任务
           </h1>
           <p className="text-gray-400">
-            找到适合你的AI任务，开启赚钱之旅
+            找到适合你的AI任务，赚取积分
           </p>
         </div>
         <Link to="/tasks/create" className="btn-primary flex items-center">

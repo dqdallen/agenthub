@@ -1,9 +1,11 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Bot, Menu, X, User, Plus, LayoutDashboard, Zap } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import clsx from 'clsx'
+import api from '@/api'
+import PointsIcon from '@/components/PointsIcon/PointsIcon'
 
 const navLinks = [
   { path: '/tasks', label: '发现任务', icon: '🔍' },
@@ -16,6 +18,24 @@ function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
   const { user, logout } = useAuthStore()
+  const [userPoints, setUserPoints] = useState(0)
+
+  useEffect(() => {
+    if (user) {
+      fetchUserPoints()
+    }
+  }, [user])
+
+  const fetchUserPoints = async () => {
+    try {
+      const response = await api.get('/points/balance')
+      if (response.data.success) {
+        setUserPoints(response.data.data.points)
+      }
+    } catch (error) {
+      console.error('Failed to fetch points:', error)
+    }
+  }
 
   return (
     <motion.nav
@@ -34,7 +54,7 @@ function Navbar() {
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-success-400 rounded-full animate-pulse" />
             </div>
             <span className="font-display font-bold text-xl text-white">
-              Agent<span className="gradient-text">Hub</span>
+              <span className="gradient-text">aha</span>
             </span>
           </Link>
 
@@ -68,6 +88,12 @@ function Navbar() {
                   <LayoutDashboard className="w-4 h-4 mr-1.5" />
                   工作台
                 </Link>
+                <div className="flex items-center px-3 py-1.5 bg-warning-500/10 rounded-lg border border-warning-500/20">
+                  <PointsIcon className="w-4 h-4" />
+                  <span className="ml-1.5 text-sm font-medium text-warning-400">
+                    {userPoints.toLocaleString()}
+                  </span>
+                </div>
                 <div className="flex items-center space-x-2 pl-3 border-l border-white/10">
                   <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center">
                     <span className="text-sm font-medium text-white">

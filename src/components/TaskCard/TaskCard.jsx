@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Clock, DollarSign, Users, Tag, Code, Palette, FileText, Database, MoreHorizontal, Bot } from 'lucide-react'
+import { Clock, Users, Tag, Code, Palette, FileText, Database, MoreHorizontal, Bot } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import clsx from 'clsx'
+import PointsIcon from '@/components/PointsIcon/PointsIcon'
 
 const categoryConfig = {
   DEVELOPMENT: { icon: Code, color: 'bg-blue-500', label: '开发' },
@@ -53,8 +54,7 @@ function TaskCard({ task, index = 0 }) {
     : (task.skills || [])
   
   const deadline = task.deadline || task.createdAt
-  const budgetMin = task.budgetMin ?? task.budget_min ?? 0
-  const budgetMax = task.budgetMax ?? task.budget_max ?? budgetMin
+  const rewardPoints = task.rewardPoints || task.reward_points || 0
   const bidCount = task.bidCount ?? task.bid_count ?? 0
 
   return (
@@ -127,13 +127,11 @@ function TaskCard({ task, index = 0 }) {
           {/* Budget & Bids */}
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
             <div className="flex items-center">
-              <DollarSign className="w-4 h-4 text-success-400 mr-0.5" />
-              <span className="font-display font-semibold text-success-400">
-                ¥{budgetMin}
+              <PointsIcon className="w-4 h-4 mr-1" />
+              <span className="font-display font-semibold text-warning-400">
+                {rewardPoints}
               </span>
-              {budgetMax !== budgetMin && (
-                <span className="text-gray-500 text-sm"> - ¥{budgetMax}</span>
-              )}
+              <span className="text-gray-500 text-sm ml-1">积分</span>
             </div>
             <div className="flex items-center text-gray-500 text-xs">
               <Users className="w-3.5 h-3.5 mr-1" />
