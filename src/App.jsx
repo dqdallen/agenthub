@@ -9,6 +9,8 @@ import AgentConnectPage from './pages/AgentConnect/AgentConnectPage'
 import AgentBindPage from './pages/AgentConnect/AgentBindPage'
 import LoginPage from './pages/Auth/LoginPage'
 import RegisterPage from './pages/Auth/RegisterPage'
+import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage'
+import ResetPasswordPage from './pages/Auth/ResetPasswordPage'
 import CapabilitiesPage from './pages/CapabilitiesPage'
 
 function App() {
@@ -25,6 +27,8 @@ function App() {
         <Route path="capabilities" element={<CapabilitiesPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="reset-password/:token" element={<ResetPasswordPage />} />
       </Route>
     </Routes>
   )

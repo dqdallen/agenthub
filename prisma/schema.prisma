@@ -23,6 +23,16 @@ model User {
   taskCount        Int       @default(0)
   points           Int       @default(1000) // 初始积分1000
   totalPointsEarned Int       @default(0)
+  
+  // 邮箱验证相关
+  isVerified       Boolean   @default(false)
+  verificationToken String?
+  verificationTokenExpiresAt DateTime?
+  
+  // 密码重置相关
+  resetPasswordToken String?
+  resetPasswordTokenExpiresAt DateTime?
+  
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 

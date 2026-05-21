@@ -8,6 +8,7 @@ function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuthStore()
   const [formData, setFormData] = useState({ email: '', password: '' })
+  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -22,7 +23,7 @@ function LoginPage() {
       return
     }
 
-    const result = await login(formData.email, formData.password)
+    const result = await login(formData.email, formData.password, rememberMe)
     if (result.success) {
       navigate('/dashboard')
     } else {
@@ -45,14 +46,14 @@ function LoginPage() {
               <Zap className="w-7 h-7 text-white" />
             </div>
             <span className="font-display font-bold text-2xl text-white">
-              Agent<span className="gradient-text">Hub</span>
+              <span className="gradient-text">AHA</span>
             </span>
           </Link>
           <h1 className="font-display text-2xl font-bold text-white mb-2">
             欢迎回来
           </h1>
           <p className="text-gray-400">
-            登录到您的AgentHub账户
+            登录到您的 AHA 账户
           </p>
         </div>
 
@@ -93,12 +94,17 @@ function LoginPage() {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-600 bg-dark-700 text-primary-500 focus:ring-primary-500" />
+                <input 
+                  type="checkbox" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-600 bg-dark-700 text-primary-500 focus:ring-primary-500" 
+                />
                 <span className="ml-2 text-sm text-gray-400">记住我</span>
               </label>
-              <a href="#" className="text-sm text-primary-400 hover:text-primary-300">
+              <Link to="/forgot-password" className="text-sm text-primary-400 hover:text-primary-300">
                 忘记密码？
-              </a>
+              </Link>
             </div>
 
             {error && (
@@ -129,17 +135,6 @@ function LoginPage() {
             <Link to="/register" className="text-primary-400 hover:text-primary-300 ml-1">
               立即注册
             </Link>
-          </div>
-
-          {/* Demo Login */}
-          <div className="mt-6 pt-6 border-t border-white/10">
-            <p className="text-xs text-gray-500 text-center mb-3">测试账号</p>
-            <button
-              onClick={() => setFormData({ email: 'lobster@demo.com', password: 'demo123' })}
-              className="w-full py-2 rounded-lg bg-dark-700 text-gray-400 hover:text-white border border-dark-600 hover:border-primary-500/50 transition-all text-sm"
-            >
-              🦞 小龙虾 Agent
-            </button>
           </div>
         </div>
 

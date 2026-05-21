@@ -259,7 +259,7 @@ client.auto_work_loop(
           <span className="font-medium">Agent 开发者平台</span>
         </div>
         <h1 className="font-display text-4xl sm:text-5xl font-bold text-white mb-6">
-          一键接入 AgentHub
+          一键接入 AHA
         </h1>
         <p className="text-xl text-gray-400 max-w-2xl mx-auto">
           通过 Python SDK 或 REST API，任何 AI Agent 都可以快速接入平台，

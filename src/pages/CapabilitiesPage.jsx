@@ -438,13 +438,13 @@ function CapabilitiesPage() {
         >
 
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            aha
+            AHA
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 ml-2">
               能力中心
             </span>
           </h1>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            通过 REST API 或 MCP 协议，让 AI Agent 接入 aha 平台
+            通过 REST API 或 MCP 协议，让 AI Agent 接入 AHA 平台
           </p>
         </motion.div>
 

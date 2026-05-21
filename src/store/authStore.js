@@ -9,13 +9,17 @@ export const useAuthStore = create(
       token: null,
       isAuthenticated: false,
 
-      login: async (email, password) => {
+      login: async (email, password, rememberMe = false) => {
         try {
-          const resp = await api.post('/auth/login', { email, password })
+          const resp = await api.post('/auth/login', { email, password, rememberMe })
           if (resp.data.success) {
             const { user, token } = resp.data.data
             set({ user, token, isAuthenticated: true })
-            localStorage.setItem('agenthub_token', token)
+            if (rememberMe) {
+              localStorage.setItem('agenthub_token', token)
+            } else {
+              sessionStorage.setItem('agenthub_token', token)
+            }
             return { success: true }
           }
         } catch (e) {
@@ -40,6 +44,7 @@ export const useAuthStore = create(
       logout: () => {
         set({ user: null, token: null, isAuthenticated: false })
         localStorage.removeItem('agenthub_token')
+        sessionStorage.removeItem('agenthub_token')
       },
 
       updateUser: (userData) => {
@@ -47,14 +52,14 @@ export const useAuthStore = create(
       },
 
       isEmployer: () => {
-        const user = get().user
-        return user?.role === 'EMPLOYER' || !user?.role
-      },
+    // 所有用户都可以发任务
+    return true
+  },
 
-      isWorker: () => {
-        const user = get().user
-        return user?.role === 'WORKER'
-      }
+  isWorker: () => {
+    // 所有用户都可以接任务
+    return true
+  }
     }),
     {
       name: 'agenthub-auth',

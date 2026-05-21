@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import emailService from './services/email.js';
 
 // 加载环境变量
 dotenv.config();
@@ -119,9 +120,72 @@ const authenticate = async (req, res, next) => {
 // ===========================
 // 用户认证 API
 // ===========================
+// 验证码存储（生产环境应该用 Redis）
+const verificationCodes = new Map();
+
+// 生成6位数字验证码
+const generateCode = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// 发送验证码接口
+app.post('/api/auth/send-verification-code', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ success: false, error: '请输入邮箱地址' });
+    }
+
+    // 检查是否已经发送过验证码，防止频繁发送
+    const existingCode = verificationCodes.get(email);
+    if (existingCode && Date.now() - existingCode.timestamp < 60000) {
+      return res.status(400).json({ success: false, error: '请60秒后再试' });
+    }
+
+    const code = generateCode();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10分钟后过期
+
+    // 存储验证码
+    verificationCodes.set(email, {
+      code,
+      expiresAt,
+      timestamp: Date.now()
+    });
+
+    // 发送验证码邮件
+    await emailService.sendVerificationCode(email, code);
+
+    res.json({ success: true, message: '验证码已发送' });
+  } catch (error) {
+    console.error('发送验证码失败:', error);
+    res.status(500).json({ success: false, error: '发送验证码失败' });
+  }
+});
+
+// 注册接口
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, name, role } = req.body;
+    const { email, password, name, verificationCode } = req.body;
+
+    // 验证验证码
+    const storedCode = verificationCodes.get(email);
+    if (!storedCode) {
+      return res.status(400).json({ success: false, error: '请先获取验证码' });
+    }
+
+    if (storedCode.code !== verificationCode) {
+      return res.status(400).json({ success: false, error: '验证码错误' });
+    }
+
+    if (Date.now() > storedCode.expiresAt) {
+      verificationCodes.delete(email);
+      return res.status(400).json({ success: false, error: '验证码已过期，请重新获取' });
+    }
+
+    // 清除已使用的验证码
+    verificationCodes.delete(email);
+
     const hashed = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
@@ -129,7 +193,8 @@ app.post('/api/auth/register', async (req, res) => {
         email,
         name,
         password: hashed,
-        role: role || 'WORKER',
+        role: 'WORKER', // 默认角色，用户可同时接任务和发任务
+        isVerified: true, // 邮箱已验证
         points: 1000, // 初始积分1000
       }
     });
@@ -180,6 +245,110 @@ app.get('/api/auth/me', authenticate, async (req, res) => {
     select: { id: true, email: true, name: true, role: true, rating: true, points: true, totalPointsEarned: true }
   });
   res.json({ success: true, data: user });
+});
+
+// ===========================
+// 邮箱验证和密码重置 API
+// ===========================
+
+// 请求密码重置
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    // 查找用户
+    const user = await prisma.user.findFirst({ where: { email } });
+    
+    // 即使找不到用户也返回成功（防止枚举攻击）
+    if (!user) {
+      return res.json({ success: true, message: '如果邮箱存在，我们已发送重置链接' });
+    }
+    
+    // 生成重置令牌
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpiresAt = new Date(Date.now() + 3600000); // 1小时后过期
+    
+    // 更新用户
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: resetToken,
+        resetPasswordTokenExpiresAt: resetTokenExpiresAt
+      }
+    });
+    
+    // 注意：在生产环境中，这里应该发送邮件
+    // 为了演示，我们在控制台打印
+    console.log(`📧 密码重置链接: http://localhost:5173/reset-password/${resetToken}`);
+    
+    res.json({ success: true, message: '如果邮箱存在，我们已发送重置链接' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ success: false, error: '发送失败' });
+  }
+});
+
+// 验证重置令牌
+app.get('/api/auth/verify-reset-token/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordTokenExpiresAt: { gt: new Date() }
+      }
+    });
+    
+    if (!user) {
+      return res.status(400).json({ success: false, error: '重置链接无效或已过期' });
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: '验证失败' });
+  }
+});
+
+// 重置密码
+app.post('/api/auth/reset-password/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+    
+    if (!password || password.length < 6) {
+      return res.status(400).json({ success: false, error: '密码至少6个字符' });
+    }
+    
+    // 查找用户
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordTokenExpiresAt: { gt: new Date() }
+      }
+    });
+    
+    if (!user) {
+      return res.status(400).json({ success: false, error: '重置链接无效或已过期' });
+    }
+    
+    // 更新密码
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordTokenExpiresAt: null
+      }
+    });
+    
+    res.json({ success: true, message: '密码重置成功' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ success: false, error: '重置失败' });
+  }
 });
 
 // ===========================

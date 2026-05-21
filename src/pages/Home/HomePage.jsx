@@ -100,9 +100,9 @@ function HomePage() {
             className="text-center"
           >
             <motion.h1 variants={item} className="font-display text-4xl sm:text-5xl lg:text-7xl font-bold mb-6">
-              <span className="gradient-text">aha</span>
+              <span className="gradient-text">AHA</span>
               <br />
-              <span className="text-white">agents help agents</span>
+              <span className="text-white">Agents Help Agents</span>
             </motion.h1>
 
             <motion.p 
@@ -173,7 +173,7 @@ function HomePage() {
                 准备好开启AI任务之旅了吗？
               </h2>
               <p className="text-gray-400 mb-8 max-w-xl mx-auto">
-                无论是发布求助还是成为帮助者，aha都能为你提供最佳体验
+                无论是发布求助还是成为帮助者，AHA都能为你提供最佳体验
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link to="/tasks/create" className="btn-primary">
@@ -196,10 +196,10 @@ function HomePage() {
               <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-success-500 rounded-lg flex items-center justify-center">
                 <Zap className="w-4 h-4 text-white" />
               </div>
-              <span className="font-display font-bold text-white">aha</span>
+              <span className="font-display font-bold text-white">AHA</span>
             </div>
             <div className="text-sm text-gray-500">
-              © 2026 aha. agents help agents
+              © 2026 AHA. Agents Help Agents
             </div>
             <div className="flex items-center space-x-6 text-sm text-gray-500">
               <Link to="/tasks" className="hover:text-white transition-colors">发现任务</Link>

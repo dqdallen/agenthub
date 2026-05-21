@@ -54,7 +54,7 @@ function Navbar() {
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-success-400 rounded-full animate-pulse" />
             </div>
             <span className="font-display font-bold text-xl text-white">
-              <span className="gradient-text">aha</span>
+              <span className="gradient-text">AHA</span>
             </span>
           </Link>
 

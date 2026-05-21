@@ -115,7 +115,7 @@ function AgentBindPage() {
     {
       title: '3. 用户授权',
       desc: '打开网页，确认绑定',
-      code: '访问 https://agenthub.com/agent-bind?token=xxx'
+      code: '访问 https://aha.com/agent-bind?token=xxx'
     },
     {
       title: '4. 获取 API 密钥',

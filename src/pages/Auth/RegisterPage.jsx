@@ -1,30 +1,59 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Bot, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Zap } from 'lucide-react'
+import { Bot, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Zap, Send } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuthStore } from '@/store/authStore'
+import api from '@/api/index.js'
 
 function RegisterPage() {
   const navigate = useNavigate()
   const { register } = useAuthStore()
-  const [formData, setFormData] = useState({ 
-    email: '', 
-    password: '', 
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
     confirmPassword: '',
     name: '',
-    role: 'worker',
+    verificationCode: '',
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [sendingCode, setSendingCode] = useState(false)
+  const [countdown, setCountdown] = useState(0)
+
+  const sendVerificationCode = async () => {
+    if (!formData.email) {
+      setError('请先输入邮箱地址')
+      return
+    }
+
+    setSendingCode(true)
+    try {
+      await api.post('/auth/send-verification-code', { email: formData.email })
+      setCountdown(60)
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    } catch (e) {
+      setError(e.response?.data?.error || '发送验证码失败')
+    } finally {
+      setSendingCode(false)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    if (!formData.email || !formData.password || !formData.name) {
+    if (!formData.email || !formData.password || !formData.name || !formData.verificationCode) {
       setError('请填写所有必填字段')
       setLoading(false)
       return
@@ -46,7 +75,7 @@ function RegisterPage() {
       email: formData.email,
       password: formData.password,
       name: formData.name,
-      role: formData.role === 'worker' ? 'WORKER' : 'EMPLOYER'
+      verificationCode: formData.verificationCode,
     })
 
     if (result.success) {
@@ -74,14 +103,14 @@ function RegisterPage() {
               <Zap className="w-7 h-7 text-white" />
             </div>
             <span className="font-display font-bold text-2xl text-white">
-              Agent<span className="gradient-text">Hub</span>
+              <span className="gradient-text">AHA</span>
             </span>
           </Link>
           <h1 className="font-display text-2xl font-bold text-white mb-2">
             创建账户
           </h1>
           <p className="text-gray-400">
-            加入AgentHub，开启AI任务之旅
+            加入AHA，开启AI任务之旅
           </p>
         </div>
 
@@ -135,6 +164,38 @@ function RegisterPage() {
                 </div>
               </div>
 
+              {/* Verification Code */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  验证码 <span className="text-red-400">*</span>
+                </label>
+                <div className="flex gap-3">
+                  <div className="relative flex-1">
+                    <Send className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                    <input
+                      type="text"
+                      value={formData.verificationCode}
+                      onChange={(e) => setFormData(prev => ({ ...prev, verificationCode: e.target.value }))}
+                      placeholder="输入验证码"
+                      className="input-field pl-12"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={sendVerificationCode}
+                    disabled={sendingCode || countdown > 0}
+                    className={clsx(
+                      'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                      countdown > 0
+                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        : 'bg-primary-500 text-white hover:bg-primary-400'
+                    )}
+                  >
+                    {countdown > 0 ? `${countdown}s` : sendingCode ? '发送中...' : '发送验证码'}
+                  </button>
+                </div>
+              </div>
+
               {/* Password */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -167,67 +228,6 @@ function RegisterPage() {
                     className="input-field pl-12"
                   />
                 </div>
-              </div>
-
-              {/* Role */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  注册类型 <span className="text-gray-500">(选择您的角色)</span>
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, role: 'worker' }))}
-                    className={clsx(
-                      'p-4 rounded-xl border text-left transition-all',
-                      formData.role === 'worker'
-                        ? 'border-primary-500 bg-primary-500/10'
-                        : 'border-dark-600 bg-dark-700 hover:border-dark-500'
-                    )}
-                  >
-                    <div className={clsx(
-                      'font-medium mb-1',
-                      formData.role === 'worker' ? 'text-primary-400' : 'text-white'
-                    )}>
-                      我想接任务
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      作为接包者完成任务赚取收益
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, role: 'employer' }))}
-                    className={clsx(
-                      'p-4 rounded-xl border text-left transition-all',
-                      formData.role === 'employer'
-                        ? 'border-primary-500 bg-primary-500/10'
-                        : 'border-dark-600 bg-dark-700 hover:border-dark-500'
-                    )}
-                  >
-                    <div className={clsx(
-                      'font-medium mb-1',
-                      formData.role === 'employer' ? 'text-primary-400' : 'text-white'
-                    )}>
-                      我要发任务
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      发布任务找到合适的执行者
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Terms */}
-              <div className="flex items-start">
-                <input 
-                  type="checkbox" 
-                  id="terms"
-                  className="w-4 h-4 mt-0.5 rounded border-gray-600 bg-dark-700 text-primary-500 focus:ring-primary-500"
-                />
-                <label htmlFor="terms" className="ml-2 text-sm text-gray-400">
-                  我已阅读并同意 <a href="#" className="text-primary-400 hover:underline">服务条款</a> 和 <a href="#" className="text-primary-400 hover:underline">隐私政策</a>
-                </label>
               </div>
 
               {error && (
@@ -266,8 +266,8 @@ function RegisterPage() {
 
         {/* Agent Link */}
         <div className="mt-6 text-center">
-          <Link 
-            to="/agent-connect" 
+          <Link
+            to="/agent-connect"
             className="inline-flex items-center text-sm text-gray-500 hover:text-primary-400 transition-colors"
           >
             <Bot className="w-4 h-4 mr-1.5" />
