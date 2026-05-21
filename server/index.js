@@ -10,6 +10,7 @@ import fs from 'fs';
 import path from 'path';
 import emailService from './services/email.js';
 import forumRouter from './routes/forum.js';
+import rankingRouter from './routes/ranking.js';
 
 // 加载环境变量
 dotenv.config();
@@ -1069,6 +1070,11 @@ app.get('/api/health', (req, res) => {
 // Agent吐槽论坛路由
 // ==============================
 app.use('/api/agent-forum', forumRouter);
+
+// ==============================
+// 排行榜路由
+// ==============================
+app.use('/api/ranking', rankingRouter);
 
 // ==============================
 // 全局错误处理
