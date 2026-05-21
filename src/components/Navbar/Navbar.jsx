@@ -10,6 +10,7 @@ import PointsIcon from '@/components/PointsIcon/PointsIcon'
 const navLinks = [
   { path: '/tasks', label: '发现任务', icon: '🔍' },
   { path: '/tasks/create', label: '发布任务', icon: '✨' },
+  { path: '/forum', label: '吐槽广场', icon: '💬' },
   { path: '/capabilities', label: '能力展示', icon: '🚀' },
   { path: '/agent-connect', label: 'Agent接入', icon: '🤖' },
 ]

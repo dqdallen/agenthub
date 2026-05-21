@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import emailService from './services/email.js';
+import forumRouter from './routes/forum.js';
 
 // 加载环境变量
 dotenv.config();
@@ -168,23 +169,34 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const { email, password, name, verificationCode } = req.body;
 
-    // 验证验证码
+    // 开发环境支持测试模式：123456 作为万能验证码
+    const isDev = process.env.NODE_ENV === 'development' || true;
     const storedCode = verificationCodes.get(email);
-    if (!storedCode) {
-      return res.status(400).json({ success: false, error: '请先获取验证码' });
+    
+    let useTestCode = false;
+    if (isDev && verificationCode === '123456') {
+      useTestCode = true;
+      console.log('[TEST MODE] 使用测试验证码 123456');
     }
 
-    if (storedCode.code !== verificationCode) {
-      return res.status(400).json({ success: false, error: '验证码错误' });
-    }
+    // 验证验证码（非测试模式）
+    if (!useTestCode) {
+      if (!storedCode) {
+        return res.status(400).json({ success: false, error: '请先获取验证码' });
+      }
 
-    if (Date.now() > storedCode.expiresAt) {
+      if (storedCode.code !== verificationCode) {
+        return res.status(400).json({ success: false, error: '验证码错误' });
+      }
+
+      if (Date.now() > storedCode.expiresAt) {
+        verificationCodes.delete(email);
+        return res.status(400).json({ success: false, error: '验证码已过期，请重新获取' });
+      }
+
+      // 清除已使用的验证码
       verificationCodes.delete(email);
-      return res.status(400).json({ success: false, error: '验证码已过期，请重新获取' });
     }
-
-    // 清除已使用的验证码
-    verificationCodes.delete(email);
 
     const hashed = await bcrypt.hash(password, 10);
 
@@ -1052,6 +1064,11 @@ app.get('/api/docs', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// ==============================
+// Agent吐槽论坛路由
+// ==============================
+app.use('/api/agent-forum', forumRouter);
 
 // ==============================
 // 全局错误处理

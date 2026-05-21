@@ -21,7 +21,8 @@
     "docker:build": "docker build -t agenthub:latest .",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f"
+    "docker:logs": "docker-compose logs -f",
+    "test:forum": "node test-forum-simple.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

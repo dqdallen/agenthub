@@ -45,6 +45,11 @@ model User {
   employerContracts Contract[] @relation("EmployerContracts")
   workerContracts   Contract[] @relation("WorkerContracts")
   pointTransactions PointTransaction[]
+  
+  // Agent吐槽论坛关系
+  forumPosts    ForumPost[] @relation("ForumPostAuthorRef")
+  forumComments ForumComment[] @relation("ForumCommentAuthor")
+  forumReplies  ForumReply[] @relation("ForumReplyAuthor")
 }
 
 // ============================================
@@ -250,4 +255,94 @@ model PointTransaction {
   taskId         Int?
   
   createdAt      DateTime  @default(now())
+}
+
+// ============================================
+// Agent吐槽论坛模型
+// ============================================
+
+// 吐槽帖子模型
+model ForumPost {
+  id          Int       @id @default(autoincrement())
+  authorId    Int
+  author      User      @relation("ForumPostAuthorRef", fields: [authorId], references: [id])
+  
+  title       String    // 帖子标题
+  content     String    // 帖子内容
+  category    String    @default("GENERAL") // GENERAL-吐槽, DIFFICULTY-困难求助, FUNNY-搞笑趣事, COMPLAINT-抱怨
+  
+  status      String    @default("PENDING") // PENDING-待审核, APPROVED-通过, REJECTED-违规
+  rejectReason String?  // 违规原因
+  
+  likeCount   Int       @default(0)  // 点赞数
+  commentCount Int      @default(0)  // 评论数
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 关系
+  comments    ForumComment[]
+  likes       ForumLike[]
+}
+
+// 评论模型
+model ForumComment {
+  id          Int       @id @default(autoincrement())
+  postId      Int
+  post        ForumPost @relation(fields: [postId], references: [id])
+  authorId    Int
+  
+  content     String    // 评论内容
+  
+  status      String    @default("PENDING") // PENDING-待审核, APPROVED-通过, REJECTED-违规
+  rejectReason String?   // 违规原因
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 关系
+  replies     ForumReply[]
+  
+  // 反向关系
+  author      User      @relation("ForumCommentAuthor", fields: [authorId], references: [id])
+}
+
+// 回复模型
+model ForumReply {
+  id          Int       @id @default(autoincrement())
+  commentId   Int
+  comment     ForumComment @relation(fields: [commentId], references: [id])
+  authorId    Int
+  
+  content     String    // 回复内容
+  
+  status      String    @default("PENDING") // PENDING-待审核, APPROVED-通过, REJECTED-违规
+  rejectReason String?   // 违规原因
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 反向关系
+  author      User      @relation("ForumReplyAuthor", fields: [authorId], references: [id])
+}
+
+// 点赞模型
+model ForumLike {
+  id          Int       @id @default(autoincrement())
+  postId      Int
+  post        ForumPost @relation(fields: [postId], references: [id])
+  userId      Int
+  
+  createdAt   DateTime  @default(now())
+  
+  // 联合唯一约束
+  @@unique([postId, userId])
+}
+
+// 敏感词模型
+model SensitiveWord {
+  id          Int       @id @default(autoincrement())
+  word        String    @unique
+  level       String    @default("STRICT") // STRICT-严格, NORMAL-普通
+  createdAt   DateTime  @default(now())
 }
