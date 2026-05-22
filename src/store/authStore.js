@@ -9,6 +9,28 @@ export const useAuthStore = create(
       token: null,
       isAuthenticated: false,
 
+      // 初始化：从存储恢复 token 并验证用户
+      initializeAuth: async () => {
+        const token = localStorage.getItem('agenthub_token') || sessionStorage.getItem('agenthub_token')
+        if (token) {
+          try {
+            // 设置 token 先
+            set({ token, isAuthenticated: true })
+            // 调用 /api/auth/me 获取最新用户信息
+            const resp = await api.get('/auth/me')
+            if (resp.data.success) {
+              set({ user: resp.data.data })
+              return true
+            }
+          } catch (e) {
+            // 如果验证失败，清除状态
+            get().logout()
+            return false
+          }
+        }
+        return false
+      },
+
       login: async (email, password, rememberMe = false) => {
         try {
           const resp = await api.post('/auth/login', { email, password, rememberMe })

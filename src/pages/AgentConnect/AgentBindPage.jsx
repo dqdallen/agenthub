@@ -3,47 +3,14 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
   Bot, Zap, Copy, CheckCircle2, AlertCircle, Eye, EyeOff, 
-  RefreshCw, Clock, Shield, Key, QrCode, Share2, X
+  RefreshCw, Clock, Shield, Key, QrCode, Share2, X, BookOpen
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { clsx } from 'clsx'
+import api from '@/api'
 
 const agentNames = ['小龙', '阿虾', 'AgentX', 'SmartBot', 'QuickAgent', 'AutoMate']
 const randomName = () => agentNames[Math.floor(Math.random() * agentNames.length)]
-
-const generateToken = () => {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  let token = 'ak_'
-  for (let i = 0; i < 48; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return token
-}
-
-const mockTokens = [
-  {
-    id: 1,
-    name: '我的小龙虾',
-    token: 'ak_example123',
-    tokenPreview: 'ak_exampl...456',
-    status: 'active',
-    createdAt: '2026-05-10',
-    lastUsed: '2026-05-16',
-    tasksCompleted: 127,
-    earnings: 2345.50
-  },
-  {
-    id: 2,
-    name: '测试Agent',
-    token: 'ak_test456',
-    tokenPreview: 'ak_test...789',
-    status: 'inactive',
-    createdAt: '2026-05-05',
-    lastUsed: '2026-05-08',
-    tasksCompleted: 23,
-    earnings: 156.30
-  }
-]
 
 function AgentBindPage() {
   const navigate = useNavigate()
@@ -53,34 +20,108 @@ function AgentBindPage() {
   const [showNewToken, setShowNewToken] = useState(false)
   const [newToken, setNewToken] = useState('')
   const [agentName, setAgentName] = useState(randomName())
-  const [tokens, setTokens] = useState(mockTokens)
+  const [tokens, setTokens] = useState([])
   const [showSecret, setShowSecret] = useState({})
   const [copied, setCopied] = useState('')
   const [showQuickStart, setShowQuickStart] = useState(false)
   const [showConfirmDelete, setShowConfirmDelete] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [connectRequest, setConnectRequest] = useState(null)
+  const [error, setError] = useState('')
 
-  const handleGenerateToken = () => {
+  useEffect(() => {
+    fetchMyAgents()
+    
+    const token = searchParams.get('token')
+    if (token) {
+      fetchBindToken(token)
+    }
+  }, [])
+
+  const fetchMyAgents = async () => {
+    try {
+      const response = await api.get('/agents/my')
+      if (response.data.success) {
+        setTokens(response.data.data.map(agent => ({
+          id: agent.id,
+          agentId: agent.agentId,
+          name: agent.name,
+          token: agent.apiKey,
+          tokenPreview: agent.apiKey?.substring(0, 10) + '...' + agent.apiKey?.substring(agent.apiKey.length - 4),
+          status: agent.status === 'BOUND' ? 'active' : (agent.status === 'REVOKED' ? 'revoked' : 'unbound'),
+          createdAt: agent.createdAt,
+          lastUsed: '-',
+          tasksCompleted: agent.tasksCompleted,
+          earnings: agent.totalEarnings
+        })))
+      }
+    } catch (err) {
+      console.error('Failed to fetch agents:', err)
+    }
+  }
+
+  const fetchBindToken = async (token) => {
+    try {
+      const response = await api.get(`/agents/bind/token/${token}`)
+      if (response.data.success) {
+        setConnectRequest({
+          token,
+          agentId: response.data.data.agentId,
+          agentName: response.data.data.agentName,
+          expiresAt: response.data.data.expiresAt
+        })
+      }
+    } catch (err) {
+      console.error('Failed to fetch bind token:', err)
+      setError('无效或过期的绑定链接')
+    }
+  }
+
+  const handleGenerateToken = async () => {
     if (!agentName.trim()) {
       return
     }
-    const token = generateToken()
-    setNewToken(token)
-    setShowNewToken(true)
+    setLoading(true)
+    try {
+      const response = await api.post('/agents/register', { name: agentName })
+      if (response.data.success) {
+        setNewToken(response.data.data.apiKey)
+        setShowNewToken(true)
+      }
+    } catch (err) {
+      console.error('Failed to generate token:', err)
+      setError(err.response?.data?.message || '生成密钥失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfirmBind = async () => {
+    if (!connectRequest?.token) return
+    
+    setLoading(true)
+    try {
+      const response = await api.post('/agents/bind', { token: connectRequest.token })
+      if (response.data.success) {
+        setConnectRequest(null)
+        setSearchParams({})
+        fetchMyAgents()
+      }
+    } catch (err) {
+      console.error('Failed to bind agent:', err)
+      setError(err.response?.data?.message || '绑定失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRejectBind = () => {
+    setConnectRequest(null)
+    setSearchParams({})
   }
 
   const handleConfirmToken = () => {
-    const newTokenItem = {
-      id: Date.now(),
-      name: agentName,
-      token: newToken,
-      tokenPreview: newToken.substring(0, 10) + '...' + newToken.substring(newToken.length - 4),
-      status: 'active',
-      createdAt: new Date().toISOString().split('T')[0],
-      lastUsed: '-',
-      tasksCompleted: 0,
-      earnings: 0
-    }
-    setTokens([newTokenItem, ...tokens])
+    fetchMyAgents()
     setShowQuickStart(true)
   }
 
@@ -90,36 +131,43 @@ function AgentBindPage() {
     setTimeout(() => setCopied(''), 2000)
   }
 
-  const handleRevokeToken = (id) => {
-    setTokens(tokens.map(t => t.id === id ? { ...t, status: 'revoked' } : t))
-    setShowConfirmDelete(null)
+  const handleRevokeToken = async (agentId) => {
+    setLoading(true)
+    try {
+      await api.delete(`/agents/bind/${agentId}`)
+      fetchMyAgents()
+    } catch (err) {
+      console.error('Failed to revoke token:', err)
+      setError(err.response?.data?.message || '撤销失败')
+    } finally {
+      setLoading(false)
+      setShowConfirmDelete(null)
+    }
   }
 
   const toggleShowSecret = (id) => {
     setShowSecret(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
-  const connectToken = searchParams.get('token')
-
   const bindSteps = [
     {
-      title: '1. 读取 skill.md',
-      desc: '小龙虾通过 HTTP GET 请求获取协议文档',
-      code: 'GET /agent-connect/skill.md'
+      title: '1. Agent 注册',
+      desc: 'Agent 调用 API 注册获取 agentId 和 apiKey',
+      code: 'POST /api/agents/register'
     },
     {
       title: '2. 生成连接令牌',
-      desc: '调用 API 生成临时连接 token',
+      desc: 'Agent 使用凭证获取临时绑定 token',
       code: 'POST /api/agents/connect'
     },
     {
       title: '3. 用户授权',
-      desc: '打开网页，确认绑定',
-      code: '访问 https://aha.com/agent-bind?token=xxx'
+      desc: '打开网页，确认绑定到自己的账户',
+      code: '访问 /agent-bind?token=xxx'
     },
     {
-      title: '4. 获取 API 密钥',
-      desc: '授权成功后，获得永久令牌',
+      title: '4. 完成绑定',
+      desc: '用户确认后，Agent 获得完整权限',
       code: 'POST /api/agents/confirm'
     }
   ]
@@ -139,12 +187,18 @@ function AgentBindPage() {
           Agent 绑定管理
         </h1>
         <p className="text-gray-400">
-          管理你的小龙虾 Agent，生成访问令牌
+          管理你的 Agent，建立 agent-user 绑定关系
         </p>
       </div>
 
+      {error && (
+        <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-400">
+          {error}
+        </div>
+      )}
+
       {/* Connect Token Flow */}
-      {connectToken && (
+      {connectRequest && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -158,15 +212,25 @@ function AgentBindPage() {
               <h3 className="font-semibold text-white mb-1">
                 Agent 请求绑定
               </h3>
-              <p className="text-gray-400 text-sm mb-4">
-                连接令牌: <code className="text-primary-400">{connectToken}</code>
+              <p className="text-gray-400 text-sm mb-2">
+                Agent 名称: <span className="text-primary-400">{connectRequest.agentName}</span>
+              </p>
+              <p className="text-gray-500 text-xs mb-4">
+                Agent ID: {connectRequest.agentId}
               </p>
               <div className="flex space-x-3">
-                <button className="btn-primary text-sm py-2">
+                <button 
+                  onClick={handleConfirmBind}
+                  disabled={loading}
+                  className="btn-primary text-sm py-2 disabled:opacity-50"
+                >
                   <CheckCircle2 className="w-4 h-4 mr-2" />
                   确认绑定
                 </button>
-                <button className="btn-secondary text-sm py-2">
+                <button 
+                  onClick={handleRejectBind}
+                  className="btn-secondary text-sm py-2"
+                >
                   拒绝
                 </button>
               </div>
@@ -181,7 +245,7 @@ function AgentBindPage() {
           {/* New Token Card */}
           <div className="card p-6">
             <h2 className="font-display text-xl font-semibold text-white mb-4">
-              生成新的 API 密钥
+              创建新的 Agent
             </h2>
             
             {!showNewToken ? (
@@ -208,10 +272,11 @@ function AgentBindPage() {
                 </div>
                 <button 
                   onClick={handleGenerateToken}
-                  className="btn-primary w-full justify-center"
+                  disabled={loading}
+                  className="btn-primary w-full justify-center disabled:opacity-50"
                 >
                   <Key className="w-5 h-5 mr-2" />
-                  生成密钥
+                  {loading ? '创建中...' : '创建 Agent'}
                 </button>
               </div>
             ) : (
@@ -222,11 +287,14 @@ function AgentBindPage() {
               >
                 <div className="bg-dark-700 rounded-xl p-4 border border-success-500/30">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">你的 API 密钥</span>
+                    <span className="text-sm text-gray-400">Agent ID</span>
                     <CheckCircle2 className="w-5 h-5 text-success-400" />
                   </div>
-                  <div className="bg-dark-800 rounded-lg p-3 font-mono text-sm flex items-center justify-between">
-                    <span className="text-success-400">{newToken}</span>
+                  <div className="bg-dark-800 rounded-lg p-3 font-mono text-sm">
+                    <span className="text-primary-400">{newToken}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-sm text-gray-400">API Key</span>
                     <button
                       onClick={() => handleCopy(newToken, 'new')}
                       className="text-gray-400 hover:text-white transition-colors"
@@ -234,9 +302,12 @@ function AgentBindPage() {
                       {copied === 'new' ? <CheckCircle2 className="w-4 h-4 text-success-400" /> : <Copy className="w-4 h-4" />}
                     </button>
                   </div>
+                  <div className="bg-dark-800 rounded-lg p-3 font-mono text-sm">
+                    <span className="text-success-400">{newToken}</span>
+                  </div>
                   <p className="text-xs text-warning-400 mt-2 flex items-center">
                     <AlertCircle className="w-3 h-3 mr-1" />
-                    请立即保存！离开页面后无法再次查看
+                    请立即保存 agentId 和 apiKey！离开页面后无法再次查看
                   </p>
                 </div>
                 <div className="flex space-x-3">
@@ -244,7 +315,7 @@ function AgentBindPage() {
                     onClick={handleConfirmToken}
                     className="btn-primary flex-1 justify-center"
                   >
-                    保存并继续
+                    我已保存，继续
                   </button>
                   <button
                     onClick={() => {
@@ -263,13 +334,14 @@ function AgentBindPage() {
           {/* Token List */}
           <div className="card p-6">
             <h2 className="font-display text-xl font-semibold text-white mb-4">
-              已绑定的 Agent
+              我的 Agent
             </h2>
             
             {tokens.length === 0 ? (
               <div className="text-center py-8">
                 <Bot className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-400">还没有绑定的 Agent</p>
+                <p className="text-gray-400">还没有创建或绑定任何 Agent</p>
+                <p className="text-gray-500 text-sm mt-2">创建 Agent 后才能发布任务和投标</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -295,23 +367,26 @@ function AgentBindPage() {
                         <div>
                           <h3 className="font-medium text-white">{token.name}</h3>
                           <div className="flex items-center space-x-2 text-xs text-gray-500">
-                            <span>创建于 {token.createdAt}</span>
+                            <span>创建于 {new Date(token.createdAt).toLocaleDateString()}</span>
                             <span>•</span>
                             <span className={clsx(
                               "px-2 py-0.5 rounded-full",
-                              token.status === 'active' ? "bg-success-500/20 text-success-400" : "bg-gray-500/20 text-gray-400"
+                              token.status === 'active' ? "bg-success-500/20 text-success-400" : 
+                              token.status === 'revoked' ? "bg-red-500/20 text-red-400" :
+                              "bg-yellow-500/20 text-yellow-400"
                             )}>
-                              {token.status === 'active' ? '活跃' : '已停用'}
+                              {token.status === 'active' ? '已绑定' : 
+                               token.status === 'revoked' ? '已撤销' : '未绑定'}
                             </span>
                           </div>
                         </div>
                       </div>
                       {token.status === 'active' && (
                         <button
-                          onClick={() => setShowConfirmDelete(token.id)}
+                          onClick={() => setShowConfirmDelete(token.agentId)}
                           className="text-xs text-red-400 hover:text-red-300 transition-colors"
                         >
-                          撤销
+                          解绑
                         </button>
                       )}
                     </div>
@@ -331,9 +406,9 @@ function AgentBindPage() {
                       </div>
                       <div className="text-center p-2 rounded-lg bg-dark-800/50">
                         <div className="text-sm font-medium text-gray-300">
-                          {token.lastUsed}
+                          {token.agentId?.substring(0, 8)}...
                         </div>
-                        <div className="text-xs text-gray-500">最后使用</div>
+                        <div className="text-xs text-gray-500">Agent ID</div>
                       </div>
                     </div>
 
@@ -369,7 +444,7 @@ function AgentBindPage() {
           <div className="card p-6">
             <h3 className="font-display text-lg font-semibold text-white mb-4 flex items-center">
               <BookOpen className="w-5 h-5 mr-2" />
-              快速绑定指南
+              绑定流程
             </h3>
             <div className="space-y-4">
               {bindSteps.map((step, i) => (
@@ -401,7 +476,7 @@ function AgentBindPage() {
               </div>
             </div>
             <p className="text-gray-500 text-xs text-center mt-3">
-              让小龙虾扫描二维码完成绑定
+              让 Agent 扫描二维码完成绑定
             </p>
             <button className="btn-secondary w-full mt-4 text-sm">
               <Share2 className="w-4 h-4 mr-2" />
@@ -418,7 +493,7 @@ function AgentBindPage() {
             <ul className="text-sm text-gray-400 space-y-2">
               <li className="flex items-start">
                 <CheckCircle2 className="w-4 h-4 text-success-400 mr-2 mt-0.5 flex-shrink-0" />
-                密钥只显示一次，请妥善保存
+                API Key 只显示一次，请妥善保存
               </li>
               <li className="flex items-start">
                 <CheckCircle2 className="w-4 h-4 text-success-400 mr-2 mt-0.5 flex-shrink-0" />
@@ -426,11 +501,11 @@ function AgentBindPage() {
               </li>
               <li className="flex items-start">
                 <CheckCircle2 className="w-4 h-4 text-success-400 mr-2 mt-0.5 flex-shrink-0" />
-                定期轮换密钥，保持安全
+                未绑定的 Agent 只能查看任务，无法发布或投标
               </li>
               <li className="flex items-start">
                 <CheckCircle2 className="w-4 h-4 text-success-400 mr-2 mt-0.5 flex-shrink-0" />
-                发现异常立即撤销密钥
+                发现异常立即解绑 Agent
               </li>
             </ul>
           </div>
@@ -450,40 +525,35 @@ function AgentBindPage() {
                 <CheckCircle2 className="w-8 h-8 text-success-400" />
               </div>
               <h2 className="font-display text-2xl font-bold text-white mb-2">
-                密钥创建成功！
+                Agent 创建成功！
               </h2>
               <p className="text-gray-400">
-                下面是给小龙虾的快速开始代码
+                现在需要将 Agent 绑定到您的账户才能使用完整功能
               </p>
             </div>
 
             <div className="bg-dark-800 rounded-xl p-4 mb-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-400 text-sm">quickstart.py</span>
+                <span className="text-gray-400 text-sm">快速开始代码</span>
                 <button onClick={() => handleCopy('import agenthub', 'quickstart')} className="text-gray-500 hover:text-white">
                   {copied === 'quickstart' ? <CheckCircle2 className="w-4 h-4 text-success-400" /> : <Copy className="w-4 h-4" />}
                 </button>
               </div>
               <pre className="text-xs text-gray-300 overflow-x-auto">
-{`# 小龙虾快速开始
-from agenthub import AgentHub
+{`# 快速开始
+import agenthub
 
-# 初始化客户端
-agent = AgentHub(
-    api_key="${newToken}",
-    agent_name="${agentName}"
+agent = agenthub.AgentHub(
+    agent_id="${newToken}",
+    api_key="${newToken}"
 )
 
-# 连接到平台
-agent.connect()
+# 获取连接链接
+result = agent.connect()
+print(f"绑定链接: {result['bind_url']}")
 
-# 获取任务列表
-tasks = agent.get_tasks(category="development")
-print(f"找到 {len(tasks)} 个任务")
-
-# 自动投标并执行
-agent.run()
-`}
+# 用户打开链接完成绑定后
+agent.confirm()`}
               </pre>
             </div>
 
@@ -508,10 +578,10 @@ agent.run()
             className="card max-w-md w-full p-6"
           >
             <h3 className="font-display text-xl font-semibold text-white mb-2">
-              撤销此 API 密钥？
+              解绑此 Agent？
             </h3>
             <p className="text-gray-400 mb-6">
-              撤销后，使用此密钥的小龙虾将无法继续访问平台。此操作不可逆。
+              解绑后，此 Agent 将无法继续发布任务和投标。此操作可逆，可重新绑定。
             </p>
             <div className="flex space-x-3">
               <button onClick={() => setShowConfirmDelete(null)} className="btn-secondary flex-1">
@@ -521,7 +591,7 @@ agent.run()
                 onClick={() => handleRevokeToken(showConfirmDelete)} 
                 className="btn-primary flex-1 justify-center bg-red-500 hover:bg-red-600"
               >
-                确认撤销
+                确认解绑
               </button>
             </div>
           </motion.div>

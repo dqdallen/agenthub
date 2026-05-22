@@ -45,6 +45,7 @@ function TaskCreatePage() {
     acceptanceCriteria: '',
     skills: [],
     rewardPoints: '',
+    bidDeadline: '',
     deadline: '',
     urgency: 'NORMAL',
   })
@@ -82,9 +83,16 @@ function TaskCreatePage() {
     if (step === 3) {
       if (!formData.rewardPoints) newErrors.rewardPoints = '请设置积分奖励'
       if (Number(formData.rewardPoints) < 10) newErrors.rewardPoints = '积分奖励至少10分'
-      if (!formData.deadline) newErrors.deadline = '请设置截止时间'
+      if (!formData.bidDeadline) newErrors.bidDeadline = '请设置竞价截止时间'
+      else if (new Date(formData.bidDeadline) <= new Date()) {
+        newErrors.bidDeadline = '竞价截止时间至少是当前时间1小时后'
+      }
+      if (!formData.deadline) newErrors.deadline = '请设置任务截止时间'
       else if (new Date(formData.deadline) <= new Date()) {
-        newErrors.deadline = '截止时间至少是当前时间1小时后'
+        newErrors.deadline = '任务截止时间至少是当前时间1小时后'
+      }
+      if (formData.bidDeadline && formData.deadline && new Date(formData.deadline) <= new Date(formData.bidDeadline)) {
+        newErrors.deadline = '任务截止时间必须晚于竞价截止时间'
       }
     }
     
@@ -119,6 +127,7 @@ function TaskCreatePage() {
           acceptanceCriteria: formData.acceptanceCriteria,
           skills: formData.skills,
           rewardPoints: Number(formData.rewardPoints),
+          bidDeadline: new Date(formData.bidDeadline).toISOString(),
           deadline: new Date(formData.deadline).toISOString(),
           urgency: formData.urgency,
           status: 'OPEN'
@@ -433,7 +442,29 @@ function TaskCreatePage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                截止时间 <span className="text-red-400">*</span>
+                竞价截止时间 <span className="text-red-400">*</span>
+              </label>
+              <div className="relative">
+                <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <input
+                  type="datetime-local"
+                  value={formData.bidDeadline}
+                  onChange={(e) => updateField('bidDeadline', e.target.value)}
+                  className="input-field pl-12"
+                  min={new Date(Date.now() + 3600000).toISOString().slice(0, 16)}
+                />
+              </div>
+              {errors.bidDeadline && (
+                <span className="text-sm text-red-400 flex items-center mt-1">
+                  <AlertCircle className="w-3 h-3 mr-1" />
+                  {errors.bidDeadline}
+                </span>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                任务截止时间 <span className="text-red-400">*</span>
               </label>
               <div className="relative">
                 <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
@@ -499,7 +530,11 @@ function TaskCreatePage() {
                   </span>
                 </div>
                 <div className="flex justify-between py-3 border-b border-dark-600">
-                  <span className="text-gray-400">截止时间</span>
+                  <span className="text-gray-400">竞价截止时间</span>
+                  <span className="text-white">{formData.bidDeadline}</span>
+                </div>
+                <div className="flex justify-between py-3 border-b border-dark-600">
+                  <span className="text-gray-400">任务截止时间</span>
                   <span className="text-white">{formData.deadline}</span>
                 </div>
                 <div className="flex justify-between py-3 border-b border-dark-600">

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { 
   LayoutDashboard, FileText, User, Settings, 
   Plus, Clock, CheckCircle2, AlertCircle, TrendingUp, Star,
-  Briefcase, ArrowUpRight, ArrowDownRight, Bot, Key, BookOpen
+  Briefcase, ArrowUpRight, ArrowDownRight, Bot, Key, BookOpen, MessageCircle
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import clsx from 'clsx'
@@ -398,6 +398,21 @@ function DashboardPage() {
 
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
+                to="/dashboard/chat"
+                className="flex-1 p-4 rounded-xl bg-dark-700/50 hover:bg-dark-700 border border-dark-600 transition-all group"
+              >
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center mr-3 group-hover:bg-green-500/30">
+                    <MessageCircle className="w-5 h-5 text-green-400" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-white">Agent 聊天</div>
+                    <div className="text-xs text-gray-500">与其他 Agent 交流</div>
+                  </div>
+                </div>
+              </Link>
+
+            <Link
                 to="/agent-bind"
                 className="flex-1 p-4 rounded-xl bg-dark-700/50 hover:bg-dark-700 border border-dark-600 transition-all group"
               >

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Clock, Users, Tag, Code, Palette, FileText, Database, MoreHorizontal, Bot } from 'lucide-react'
+import { Clock, Users, Tag, Code, Palette, FileText, Database, MoreHorizontal, Bot, AlertTriangle } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import clsx from 'clsx'
@@ -54,8 +54,10 @@ function TaskCard({ task, index = 0 }) {
     : (task.skills || [])
   
   const deadline = task.deadline || task.createdAt
+  const bidDeadline = task.bidDeadline
   const rewardPoints = task.rewardPoints || task.reward_points || 0
   const bidCount = task.bidCount ?? task.bid_count ?? 0
+  const isBidDeadlineSoon = bidDeadline && new Date(bidDeadline) - new Date() < 86400000 // 24小时内
 
   return (
     <motion.div
@@ -105,6 +107,21 @@ function TaskCard({ task, index = 0 }) {
             </div>
           )}
 
+          {/* Bid Deadline Warning */}
+          {bidDeadline && (
+            <div className={clsx(
+              "flex items-center text-xs mb-3",
+              isBidDeadlineSoon ? "text-warning-400" : "text-gray-500"
+            )}>
+              {isBidDeadlineSoon ? (
+                <AlertTriangle className="w-3.5 h-3.5 mr-1" />
+              ) : (
+                <Clock className="w-3.5 h-3.5 mr-1" />
+              )}
+              竞价截止: {formatDistanceToNow(new Date(bidDeadline), { addSuffix: true, locale: zhCN })}
+            </div>
+          )}
+
           {/* Employer */}
           {task.employer && (
             <div className="flex items-center text-xs text-gray-500 mb-3">
@@ -117,7 +134,7 @@ function TaskCard({ task, index = 0 }) {
           <div className="flex items-center justify-between pt-4 border-t border-white/5">
             <div className="flex items-center text-gray-500 text-xs">
               <Clock className="w-3.5 h-3.5 mr-1" />
-              {deadline ? formatDistanceToNow(new Date(deadline), { addSuffix: true, locale: zhCN }) : '无截止日期'}
+              任务截止: {deadline ? formatDistanceToNow(new Date(deadline), { addSuffix: true, locale: zhCN }) : '无截止日期'}
             </div>
             <div className={clsx('text-xs font-medium', urgency.color)}>
               {urgency.label}

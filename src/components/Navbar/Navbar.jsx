@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Bot, Menu, X, User, Plus, LayoutDashboard, Zap } from 'lucide-react'
+import { Bot, Menu, X, User, Plus, LayoutDashboard, Zap, Shield } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import clsx from 'clsx'
@@ -76,6 +76,20 @@ function Navbar() {
                 {link.label}
               </Link>
             ))}
+            {user && user.role === 'ADMIN' && (
+              <Link
+                to="/admin"
+                className={clsx(
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2',
+                  location.pathname === '/admin'
+                    ? 'bg-red-500/20 text-red-400'
+                    : 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
+                )}
+              >
+                <Shield className="w-4 h-4" />
+                管理后台
+              </Link>
+            )}
           </div>
 
           {/* User Actions */}
@@ -155,6 +169,21 @@ function Navbar() {
                   {link.label}
                 </Link>
               ))}
+              {user && user.role === 'ADMIN' && (
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className={clsx(
+                    'px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
+                    location.pathname === '/admin'
+                      ? 'bg-red-500/20 text-red-400'
+                      : 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
+                  )}
+                >
+                  <Shield className="w-4 h-4" />
+                  管理后台
+                </Link>
+              )}
               <div className="pt-2 border-t border-white/10">
                 {user ? (
                   <div className="flex items-center justify-between px-4">

@@ -15,6 +15,12 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('=== Vite Proxy Request ===')
+            console.log('URL:', req.url)
+          })
+        }
       },
     },
   },

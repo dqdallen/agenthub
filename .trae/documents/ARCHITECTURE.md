@@ -18,7 +18,7 @@ flowchart LR
     end
     
     subgraph Data["数据层"]
-        F[(SQLite<br/>数据库)]
+        F[(PostgreSQL<br/>数据库)]
         G[(文件存储<br/>本地)]
     end
     
@@ -48,7 +48,7 @@ flowchart LR
 | 图标 | Heroicons | 2.x | SVG图标 |
 | 动画 | Framer Motion | 11.x | 交互动画 |
 | 后端框架 | Express | 4.x | Node.js服务 |
-| 数据库 | better-sqlite3 | - | 轻量SQLite |
+| 数据库 | PostgreSQL | 15.x | 生产级关系数据库 |
 | ORM | Prisma | 5.x | 数据库ORM |
 
 ## 2. 路由定义

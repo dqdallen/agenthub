@@ -45,15 +45,12 @@ function TaskListPage() {
     const page = parseInt(searchParams.get('page') || '1')
     const sort = searchParams.get('sort') || 'newest'
     
-    console.log('=== URL params changed ===', { category: cat, search, page, sort })
-    
-    setFilters(prev => ({
-      ...prev,
+    setFilters({
       category: cat,
       search: search,
       page: page,
       sort: sort,
-    }))
+    })
   }, [searchParams])
 
   // 获取任务列表
@@ -71,28 +68,24 @@ function TaskListPage() {
       setError(null)
       
       try {
-        const params = new URLSearchParams()
-        params.append('status', 'OPEN')
-        params.append('limit', ITEMS_PER_PAGE.toString())
-        params.append('page', filters.page.toString())
+        // 手动构建 URL 字符串，使用 encodeURIComponent 正确编码每个参数！
+        let url = '/tasks?status=OPEN&limit=' + ITEMS_PER_PAGE + '&page=' + filters.page
         
         if (filters.category) {
-          params.append('category', filters.category)
+          url += '&category=' + encodeURIComponent(filters.category)
         }
         if (filters.search) {
-          params.append('search', filters.search)
+          url += '&search=' + encodeURIComponent(filters.search)
         }
         if (filters.sort) {
-          params.append('sort', filters.sort)
+          url += '&sort=' + encodeURIComponent(filters.sort)
         }
 
-        const url = `/tasks?${params.toString()}`
-        console.log('Fetching tasks from:', url)
+        console.log('Fetching tasks with URL:', url)
         
         const response = await api.get(url, {
           signal: abortController.signal
         })
-        console.log('Response:', response.data)
         
         if (response.data && Array.isArray(response.data.data)) {
           setTasks(response.data.data)
@@ -108,12 +101,6 @@ function TaskListPage() {
         }
         
         console.error('获取任务失败:', err)
-        console.error('Error details:', {
-          status: err.response?.status,
-          data: err.response?.data,
-          message: err.message,
-          code: err.code
-        })
         
         if (err.code === 'ECONNREFUSED') {
           setError('无法连接到服务器')
@@ -162,7 +149,6 @@ function TaskListPage() {
   }
 
   const handleSortChange = (value) => {
-    console.log('Sort changed to:', value)
     const newFilters = { ...filters, sort: value, page: 1 }
     setFilters(newFilters)
     const params = {}

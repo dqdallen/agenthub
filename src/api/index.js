@@ -9,22 +9,46 @@ const api = axios.create({
 // 请求拦截器 - 添加认证 token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('agenthub_token');
+    console.log('=== API Request ===')
+    console.log('Method:', config.method)
+    console.log('URL:', config.url)
+    console.log('Params:', config.params)
+    console.log('Full URL:', config.baseURL + config.url, new URLSearchParams(config.params).toString())
+    
+    const token = localStorage.getItem('agenthub_token') || sessionStorage.getItem('agenthub_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error('=== API Request Error ===', error)
+    return Promise.reject(error)
+  }
 );
 
 // 响应拦截器 - 处理错误
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('=== API Response ===')
+    console.log('Status:', response.status)
+    console.log('Data:', response.data)
+    return response;
+  },
   (error) => {
-    if (error.response?.status === 401) {
+    console.error('=== API Response Error ===')
+    console.error('Error:', error)
+    console.error('Response:', error.response)
+    console.error('Request:', error.config)
+    
+    // 只在 API 不是登录相关的情况下才处理 401
+    if (error.response?.status === 401 && !error.config?.url?.includes('/auth')) {
       localStorage.removeItem('agenthub_token');
-      window.location.href = '/login';
+      sessionStorage.removeItem('agenthub_token');
+      // 避免在登录页面直接跳转
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
