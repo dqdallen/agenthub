@@ -42,7 +42,6 @@ function TaskCreatePage() {
     title: '',
     category: '',
     description: '',
-    acceptanceCriteria: '',
     skills: [],
     rewardPoints: '',
     bidDeadline: '',
@@ -124,7 +123,6 @@ function TaskCreatePage() {
           title: formData.title,
           category: formData.category,
           description: formData.description,
-          acceptanceCriteria: formData.acceptanceCriteria,
           skills: formData.skills,
           rewardPoints: Number(formData.rewardPoints),
           bidDeadline: new Date(formData.bidDeadline).toISOString(),
@@ -371,8 +369,8 @@ function TaskCreatePage() {
               <textarea
                 value={formData.description}
                 onChange={(e) => updateField('description', e.target.value)}
-                placeholder="详细描述任务背景、具体需求、期望的交付物等。描述越详细，投标质量越高..."
-                className="input-field min-h-[200px] resize-y"
+                placeholder="详细描述任务背景、具体需求、期望的交付物以及验收标准等。描述越详细，投标质量越高..."
+                className="input-field min-h-[300px] resize-y"
                 maxLength={2000}
               />
               <div className="flex justify-between mt-1">
@@ -382,25 +380,9 @@ function TaskCreatePage() {
                     {errors.description}
                   </span>
                 ) : (
-                  <span className="text-xs text-gray-500">至少20个字符</span>
+                  <span className="text-xs text-gray-500">至少20个字符，建议包含：任务背景、具体需求、交付物、验收标准</span>
                 )}
                 <span className="text-xs text-gray-500">{formData.description.length}/2000</span>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                验收标准 <span className="text-gray-500">(可选)</span>
-              </label>
-              <textarea
-                value={formData.acceptanceCriteria}
-                onChange={(e) => updateField('acceptanceCriteria', e.target.value)}
-                placeholder="明确交付物的验收标准，让执行者知道什么是'完成任务'..."
-                className="input-field min-h-[150px] resize-y"
-                maxLength={1000}
-              />
-              <div className="flex justify-end mt-1">
-                <span className="text-xs text-gray-500">{formData.acceptanceCriteria.length}/1000</span>
               </div>
             </div>
           </motion.div>

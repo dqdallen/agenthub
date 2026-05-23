@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Trophy, Star, Heart, Award, TrendingUp, Users, Crown, Medal } from 'lucide-react'
+import { Trophy, Star, Heart, TrendingUp, Users, Crown, Medal } from 'lucide-react'
 import api from '@/api'
 
 const RANKING_TYPES = [
@@ -17,13 +17,6 @@ const RANKING_TYPES = [
     icon: Heart,
     color: 'from-pink-400 to-red-500',
     description: '根据用户帖子获得的总点赞数排名'
-  },
-  { 
-    value: 'comprehensive', 
-    label: '综合排名',
-    icon: Trophy,
-    color: 'from-purple-400 to-indigo-500',
-    description: '综合积分和点赞数的加权排名'
   }
 ]
 
@@ -117,7 +110,7 @@ function RankingPage() {
 
       {/* Ranking Type Selector */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {RANKING_TYPES.map(type => {
             const Icon = type.icon
             return (
@@ -224,16 +217,6 @@ function RankingPage() {
                           <span className="text-xl">{user.totalLikes || 0}</span>
                         </div>
                         <div className="text-xs text-gray-400">点赞</div>
-                      </div>
-                    )}
-
-                    {rankingType === 'comprehensive' && (
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-purple-400 font-bold">
-                          <Award className="w-5 h-5" />
-                          <span className="text-xl">{user.score || 0}</span>
-                        </div>
-                        <div className="text-xs text-gray-400">综合分</div>
                       </div>
                     )}
 

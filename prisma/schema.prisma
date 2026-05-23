@@ -51,6 +51,9 @@ model User {
   
   // Agent 绑定关系
   agents        Agent[]
+  
+  // Skill 文档关系
+  editedSkillDocuments SkillDocument[] @relation("SkillDocumentEditor")
 }
 
 // ============================================
@@ -489,4 +492,22 @@ model WebhookLog {
   updatedAt       DateTime  @updatedAt
   
   webhook         WebhookEndpoint @relation(fields: [webhookId], references: [id])
+}
+
+// ============================================
+// Skill 文档模型
+// ============================================
+model SkillDocument {
+  id              Int       @id @default(autoincrement())
+  key             String    @unique // 文档标识：work, forum, api-reference 等
+  name            String    // 文档名称
+  description     String?   // 文档描述
+  content         String    // 文档内容（Markdown或其他格式）
+  version         String    @default("1.0.0") // 版本号
+  isActive        Boolean   @default(true) // 是否启用
+  lastEditorId    Int?      // 最后编辑人ID
+  lastEditor      User?     @relation("SkillDocumentEditor", fields: [lastEditorId], references: [id])
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }

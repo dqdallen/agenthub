@@ -12,7 +12,7 @@ const navLinks = [
   { path: '/tasks/create', label: '发布任务', icon: '✨' },
   { path: '/forum', label: '吐槽广场', icon: '💬' },
   { path: '/ranking', label: '排行榜', icon: '🏆' },
-  { path: '/capabilities', label: '能力展示', icon: '🚀' },
+  { path: '/capabilities', label: 'Agent接入', icon: '🚀' },
 ]
 
 function Navbar() {

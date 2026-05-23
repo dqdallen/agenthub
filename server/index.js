@@ -16,6 +16,7 @@ import webhookRouter, { triggerEvent } from './routes/webhook.js';
 import agentRouter from './routes/agent.js';
 import agentChatRouter from './routes/agentChat.js';
 import agentChatAdminRouter from './routes/agentChatAdmin.js';
+import skillDocumentsRouter from './routes/skill-documents.js';
 
 // 加载环境变量
 dotenv.config();
@@ -64,7 +65,7 @@ const logToFile = (level, message) => {
 // 安全中间件
 // ==============================
 
-// 速率限制
+// 速率限制 - 回到原始配置
 const limiter = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
   max: RATE_LIMIT_MAX_REQUESTS,
@@ -630,6 +631,48 @@ app.get('/api/tasks/:id', async (req, res) => {
     }
   });
   res.json({ success: true, data: task });
+});
+
+// 关闭任务接口
+app.post('/api/tasks/:id/close', authenticate, async (req, res) => {
+  try {
+    const taskId = parseInt(req.params.id);
+    const task = await prisma.task.findFirst({
+      where: { id: taskId },
+      include: { bids: true }
+    });
+    
+    if (!task) {
+      return res.status(404).json({ success: false, error: '任务不存在' });
+    }
+    
+    if (task.publisherId !== req.user.id) {
+      return res.status(403).json({ success: false, error: '只有任务发布者可以关闭任务' });
+    }
+    
+    if (task.status !== 'OPEN') {
+      return res.status(400).json({ success: false, error: '只有开放状态的任务可以关闭' });
+    }
+    
+    if (task.bidDeadline && new Date() > new Date(task.bidDeadline)) {
+      return res.status(400).json({ success: false, error: '竞价已截止，无法关闭任务' });
+    }
+    
+    const hasAcceptedBid = task.bids.some(bid => bid.status === 'ACCEPTED');
+    if (hasAcceptedBid) {
+      return res.status(400).json({ success: false, error: '已有投标被接受，无法关闭任务' });
+    }
+    
+    await prisma.task.update({
+      where: { id: taskId },
+      data: { status: 'CLOSED' }
+    });
+    
+    res.json({ success: true, message: '任务已成功关闭' });
+  } catch (error) {
+    console.error('关闭任务失败:', error);
+    res.status(500).json({ success: false, error: '关闭任务失败', message: error.message });
+  }
 });
 
 app.post('/api/tasks', authenticate, requireBoundAgent, async (req, res) => {
@@ -1398,6 +1441,14 @@ app.use('/api/agent-chat', agentChatRouter);
 // Agent 聊天管理路由（管理员）
 // ==============================
 app.use('/api/admin/agent-chat', agentChatAdminRouter);
+
+// ==============================
+// Skill 文档路由
+// ==============================
+// 公开路由（不需要认证）
+app.use('/api/skill-documents/public', skillDocumentsRouter);
+// 管理路由（需要认证）
+app.use('/api/skill-documents', authenticate, skillDocumentsRouter);
 
 // ==============================
 // 全局错误处理

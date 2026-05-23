@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Search, Filter, Plus, Code, Palette, FileText, Database, MoreHorizontal, X, SlidersHorizontal, Loader2 } from 'lucide-react'
+import { Search, Plus, Code, Palette, FileText, Database, MoreHorizontal, X, SlidersHorizontal, Loader2 } from 'lucide-react'
 import TaskCard from '@/components/TaskCard/TaskCard'
 import clsx from 'clsx'
 import api from '@/api'
@@ -24,12 +24,12 @@ const ITEMS_PER_PAGE = 12
 
 function TaskListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [showFilters, setShowFilters] = useState(false)
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [total, setTotal] = useState(0)
   const abortControllerRef = useRef(null)
+  const [searchInputValue, setSearchInputValue] = useState('')
   
   const [filters, setFilters] = useState({
     category: '',
@@ -51,6 +51,7 @@ function TaskListPage() {
       page: page,
       sort: sort,
     })
+    setSearchInputValue(search)
   }, [searchParams])
 
   // 获取任务列表
@@ -68,24 +69,24 @@ function TaskListPage() {
       setError(null)
       
       try {
-        // 手动构建 URL 字符串，使用 encodeURIComponent 正确编码每个参数！
-        let url = '/tasks?status=OPEN&limit=' + ITEMS_PER_PAGE + '&page=' + filters.page
+        const params = {
+          status: 'OPEN',
+          limit: ITEMS_PER_PAGE,
+          page: filters.page,
+        }
         
-        if (filters.category) {
-          url += '&category=' + encodeURIComponent(filters.category)
-        }
-        if (filters.search) {
-          url += '&search=' + encodeURIComponent(filters.search)
-        }
-        if (filters.sort) {
-          url += '&sort=' + encodeURIComponent(filters.sort)
-        }
-
-        console.log('Fetching tasks with URL:', url)
+        if (filters.category) params.category = filters.category
+        if (filters.search) params.search = filters.search
+        if (filters.sort && filters.sort !== 'newest') params.sort = filters.sort
         
-        const response = await api.get(url, {
+        console.log('=== Fetching tasks with params:', params)
+        
+        const response = await api.get('/tasks', {
+          params,
           signal: abortController.signal
         })
+        
+        console.log('=== Response:', response.data)
         
         if (response.data && Array.isArray(response.data.data)) {
           setTasks(response.data.data)
@@ -96,7 +97,7 @@ function TaskListPage() {
         }
       } catch (err) {
         if (err.name === 'CanceledError' || err.name === 'AbortError') {
-          console.log('Request cancelled')
+          console.log('Request canceled')
           return
         }
         
@@ -138,14 +139,14 @@ function TaskListPage() {
     }
   }
 
-  const handleSearch = (value) => {
-    const newFilters = { ...filters, search: value, page: 1 }
+  const handleSearch = () => {
+    const newFilters = { ...filters, search: searchInputValue, page: 1 }
     setFilters(newFilters)
-    if (value) {
-      setSearchParams({ search: value })
-    } else {
-      setSearchParams({})
-    }
+    const params = {}
+    if (filters.category) params.category = filters.category
+    if (searchInputValue) params.search = searchInputValue
+    if (filters.sort && filters.sort !== 'newest') params.sort = filters.sort
+    setSearchParams(params)
   }
 
   const handleSortChange = (value) => {
@@ -227,11 +228,24 @@ function TaskListPage() {
             <input
               type="text"
               placeholder="搜索任务标题或描述..."
-              value={filters.search}
-              onChange={(e) => handleSearch(e.target.value)}
+              value={searchInputValue}
+              onChange={(e) => setSearchInputValue(e.target.value)}
               className="input-field pl-12"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch()
+                }
+              }}
             />
           </div>
+
+          {/* Search Button */}
+          <button
+            onClick={handleSearch}
+            className="btn-primary px-6"
+          >
+            搜索
+          </button>
 
           {/* Sort */}
           <div className="flex items-center gap-2">
@@ -246,55 +260,7 @@ function TaskListPage() {
               ))}
             </select>
           </div>
-
-          {/* Filter Toggle */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={clsx(
-              'px-4 py-3 rounded-xl border transition-all',
-              showFilters 
-                ? 'bg-primary-500/20 border-primary-500 text-primary-400' 
-                : 'bg-dark-700 border-dark-600 text-gray-400 hover:text-white'
-            )}
-          >
-            <Filter className="w-5 h-5" />
-          </button>
         </div>
-
-        {/* Filters */}
-        {showFilters && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="mt-4 pt-4 border-t border-white/10"
-          >
-            <div className="flex flex-wrap gap-2">
-              <span className="text-sm text-gray-500 mr-2">技能:</span>
-              {['Python', 'JavaScript', 'React', 'Node.js', 'AI/ML', '设计'].map(skill => (
-                <button
-                  key={skill}
-                  onClick={() => handleSearch(skill)}
-                  className={clsx(
-                    'px-3 py-1.5 rounded-lg text-sm transition-all',
-                    filters.search === skill
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-dark-700 text-gray-400 hover:bg-dark-600'
-                  )}
-                >
-                  {skill}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center justify-end mt-4">
-              <button
-                onClick={resetFilters}
-                className="text-sm text-primary-400 hover:text-primary-300"
-              >
-                重置筛选
-              </button>
-            </div>
-          </motion.div>
-        )}
       </div>
 
       {/* Categories */}

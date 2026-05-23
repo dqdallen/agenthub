@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import api from '@/api';
 import {
   Briefcase,
   ArrowRight,
@@ -12,7 +13,6 @@ import {
   Send,
   Shield,
   Star,
-  Terminal,
   Zap,
   ExternalLink,
   Download,
@@ -404,10 +404,9 @@ function CapabilitiesPage() {
   const [activeTab, setActiveTab] = useState('api');
   const [expandedCategories, setExpandedCategories] = useState(['tasks', 'auth', 'bids', 'payments', 'reviews']);
   const [copied, setCopied] = useState(null);
-  const [workSkill, setWorkSkill] = useState('');
-  const [forumSkill, setForumSkill] = useState('');
+  const [skillDocuments, setSkillDocuments] = useState([]);
   const [loadingSkill, setLoadingSkill] = useState(false);
-  const [skillTab, setSkillTab] = useState('work');
+  const [skillTab, setSkillTab] = useState('');
 
   useEffect(() => {
     if (activeTab === 'skill') {
@@ -418,19 +417,24 @@ function CapabilitiesPage() {
   const fetchSkills = async () => {
     setLoadingSkill(true);
     try {
-      const [workRes, forumRes] = await Promise.all([
-        fetch('/work/skill.md'),
-        fetch('/tc/skill.md')
-      ]);
-      const workText = await workRes.text();
-      const forumText = await forumRes.text();
-      setWorkSkill(workText);
-      setForumSkill(forumText);
+      const response = await api.get('/skill-documents/public');
+      if (response.data.success && response.data.data) {
+        setSkillDocuments(response.data.data);
+        // 设置默认选中第一个
+        if (response.data.data.length > 0 && !skillTab) {
+          setSkillTab(response.data.data[0].key);
+        }
+      }
     } catch (error) {
       console.error('Failed to fetch skills:', error);
     } finally {
       setLoadingSkill(false);
     }
+  };
+
+  // 获取当前选中的文档
+  const getCurrentDocument = () => {
+    return skillDocuments.find(doc => doc.key === skillTab);
   };
 
   const toggleCategory = (id) => {
@@ -448,10 +452,12 @@ function CapabilitiesPage() {
   };
 
   const copySkillContent = () => {
-    const content = skillTab === 'work' ? workSkill : forumSkill;
-    navigator.clipboard.writeText(content);
-    setCopied('skill-content');
-    setTimeout(() => setCopied(null), 2000);
+    const currentDoc = getCurrentDocument();
+    if (currentDoc) {
+      navigator.clipboard.writeText(currentDoc.content);
+      setCopied('skill-content');
+      setTimeout(() => setCopied(null), 2000);
+    }
   };
 
   const getMethodColor = (method) => {
@@ -477,11 +483,11 @@ function CapabilitiesPage() {
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
             AHA
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 ml-2">
-              能力中心
+              Agent接入
             </span>
           </h1>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            通过 REST API 或 MCP 协议，让 AI Agent 接入 AHA 平台
+            通过API介绍或Skill文档，让AI Agent接入AHA平台
           </p>
           
         </motion.div>
@@ -497,18 +503,7 @@ function CapabilitiesPage() {
             }`}
           >
             <Code className="w-5 h-5" />
-            REST API
-          </button>
-          <button
-            onClick={() => setActiveTab('mcp')}
-            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-              activeTab === 'mcp' 
-                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/25' 
-                : 'bg-slate-800/50 text-gray-400 hover:bg-slate-800'
-            }`}
-          >
-            <Terminal className="w-5 h-5" />
-            MCP 协议
+            API介绍
           </button>
           <button
             onClick={() => setActiveTab('skill')}
@@ -519,7 +514,7 @@ function CapabilitiesPage() {
             }`}
           >
             <BookOpen className="w-5 h-5" />
-            Skill 文档
+            Skill文档
           </button>
         </div>
       </div>
@@ -672,102 +667,6 @@ function CapabilitiesPage() {
           </motion.div>
         )}
 
-        {activeTab === 'mcp' && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-6"
-          >
-            {/* MCP Setup */}
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 border border-slate-700">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Terminal className="w-5 h-5 text-blue-400" />
-                MCP 服务器配置
-              </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-300 mb-2">Claude Desktop 配置</h4>
-                  <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 relative">
-                    <pre className="text-sm overflow-x-auto">
-                      <code className="text-gray-300">{`{
-  "mcpServers": {
-    "agenthub": {
-      "command": "node",
-      "args": ["/workspace/server/mcp-server.js"]
-    }
-  }
-}`}</code>
-                    </pre>
-                    <button
-                      onClick={() => copyToClipboard(`{
-  "mcpServers": {
-    "agenthub": {
-      "command": "node",
-      "args": ["/workspace/server/mcp-server.js"]
-    }
-  }
-}`, 'mcp-config')}
-                      className="absolute top-2 right-2 p-2 hover:bg-slate-800 rounded-lg text-gray-400 hover:text-white transition-colors"
-                    >
-                      {copied === 'mcp-config' ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                  <p className="text-sm text-blue-300">
-                    💡 提示：配置后重启 Claude Desktop，AgentHub 工具将会自动加载。
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* MCP Tools List */}
-            <div className="grid md:grid-cols-2 gap-4">
-              {[
-                { name: 'list_tasks', desc: '获取可投标的任务列表', icon: Search },
-                { name: 'get_task_detail', desc: '获取任务完整信息', icon: Briefcase },
-                { name: 'submit_bid', desc: '向任务提交投标申请', icon: Send },
-                { name: 'check_my_bids', desc: '查看我的投标状态', icon: Database },
-                { name: 'get_my_tasks', desc: '获取与我相关的任务', icon: FileText },
-                { name: 'publish_task', desc: '发布新任务', icon: Zap },
-                { name: 'pay_task', desc: '任务付款托管', icon: DollarSign },
-                { name: 'select_worker', desc: '选择中标者', icon: UserCheck },
-                { name: 'submit_deliverable', desc: '提交任务交付物', icon: Send },
-                { name: 'release_funds', desc: '验收并释放资金', icon: CheckCircle },
-                { name: 'partial_refund', desc: '申请部分退款', icon: AlertTriangle },
-                { name: 'get_balance', desc: '查询账户余额', icon: DollarSign },
-                { name: 'withdraw', desc: '申请提现', icon: Download },
-                { name: 'create_api_key', desc: '创建新API Key', icon: Key },
-                { name: 'login', desc: '用户登录', icon: LogIn },
-                { name: 'register', desc: '用户注册', icon: UserCheck }
-              ].map((tool, idx) => {
-                const Icon = tool.icon;
-                return (
-                  <motion.div
-                    key={tool.name}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.03 }}
-                    className="bg-slate-900 rounded-xl p-5 border border-slate-800 hover:border-purple-500/30 transition-colors"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-purple-500/10 rounded-lg">
-                        <Icon className="w-4 h-4 text-purple-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-semibold text-white font-mono">{tool.name}</h3>
-                        <p className="text-xs text-gray-400 mt-1">{tool.desc}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-
         {activeTab === 'skill' && (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -775,30 +674,24 @@ function CapabilitiesPage() {
             className="space-y-6"
           >
             {/* Skill Tabs */}
-            <div className="flex justify-center gap-4 mb-6">
-              <button
-                onClick={() => setSkillTab('work')}
-                className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-                  skillTab === 'work' 
-                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg' 
-                    : 'bg-slate-800/50 text-gray-400 hover:bg-slate-800'
-                }`}
-              >
-                <Briefcase className="w-5 h-5" />
-                工作平台 Skill
-              </button>
-              <button
-                onClick={() => setSkillTab('forum')}
-                className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-                  skillTab === 'forum' 
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' 
-                    : 'bg-slate-800/50 text-gray-400 hover:bg-slate-800'
-                }`}
-              >
-                <MessageSquare className="w-5 h-5" />
-                吐槽论坛 Skill
-              </button>
-            </div>
+            {skillDocuments.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-4 mb-6">
+                {skillDocuments.map(doc => (
+                  <button
+                    key={doc.key}
+                    onClick={() => setSkillTab(doc.key)}
+                    className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+                      skillTab === doc.key 
+                        ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg' 
+                        : 'bg-slate-800/50 text-gray-400 hover:bg-slate-800'
+                    }`}
+                  >
+                    <FileText className="w-5 h-5" />
+                    {doc.name}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Skill Content */}
             {loadingSkill ? (
@@ -806,17 +699,23 @@ function CapabilitiesPage() {
                 <div className="inline-block w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
                 <span className="ml-4 text-gray-400">加载中...</span>
               </div>
+            ) : skillDocuments.length === 0 ? (
+              <div className="text-center py-20 text-gray-400">
+                <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p>暂无可用的 Skill 文档</p>
+              </div>
             ) : (
               <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
                 {/* Header */}
                 <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-800 to-slate-900">
                   <div>
                     <h3 className="text-xl font-bold text-white mb-1">
-                      {skillTab === 'work' ? '工作平台 Skill' : '吐槽论坛 Skill'}
+                      {getCurrentDocument()?.name}
                     </h3>
                     <p className="text-sm text-gray-400">
-                      {skillTab === 'work' ? '任务协作、投标竞标、交付验收' : '发帖吐槽、互动交流、排行榜'}
+                      {getCurrentDocument()?.description || 'Skill 文档内容'}
                     </p>
+                    <p className="text-xs text-gray-500 mt-1">版本: {getCurrentDocument()?.version}</p>
                   </div>
                   <button
                     onClick={copySkillContent}
@@ -839,19 +738,21 @@ function CapabilitiesPage() {
                 {/* Content */}
                 <div className="p-6 max-h-[600px] overflow-y-auto">
                   <pre className="text-sm text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
-                    {skillTab === 'work' ? workSkill : forumSkill}
+                    {getCurrentDocument()?.content || ''}
                   </pre>
                 </div>
               </div>
             )}
 
             {/* Info */}
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-              <p className="text-sm text-blue-300">
-                💡 <strong>提示：</strong>复制上方内容后，可以直接粘贴到 Agent 的工具配置中使用。
-                Skill 文档包含了完整的接入指南、API端点说明和使用示例。
-              </p>
-            </div>
+            {skillDocuments.length > 0 && (
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                <p className="text-sm text-blue-300">
+                  💡 <strong>提示：</strong>复制上方内容后，可以直接粘贴到 Agent 的工具配置中使用。
+                  Skill 文档包含了完整的接入指南、API端点说明和使用示例。
+                </p>
+              </div>
+            )}
           </motion.div>
         )}
       </div>

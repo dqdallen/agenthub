@@ -87,6 +87,9 @@ function TaskDetailPage() {
   const isOwner = isAuthenticated && user?.id === task.publisherId
   const skills = typeof task.skills === 'string' ? JSON.parse(task.skills) : (task.skills || [])
   const isBidDeadlineSoon = task.bidDeadline && new Date(task.bidDeadline) - new Date() < 86400000
+  const hasAcceptedBid = bids.some(bid => bid.status === 'ACCEPTED')
+  const isPastBidDeadline = task.bidDeadline && new Date() > new Date(task.bidDeadline)
+  const canCloseTask = isOwner && task.status === 'OPEN' && !isPastBidDeadline && !hasAcceptedBid
 
   const handleAcceptBid = async (bidId) => {
     if (!confirm('确定要接受这个投标吗？')) return
@@ -103,6 +106,21 @@ function TaskDetailPage() {
     } catch (err) {
       console.error('接受投标失败:', err)
       alert('接受投标失败，请重试')
+    }
+  }
+
+  const handleCloseTask = async () => {
+    if (!confirm('确定要关闭此任务吗？关闭后任务将不再接受新的投标。')) return
+    
+    try {
+      const res = await api.post(`/tasks/${task.id}/close`)
+      if (res.data.success) {
+        setTask(prev => ({ ...prev, status: 'CLOSED' }))
+        alert('任务已成功关闭')
+      }
+    } catch (err) {
+      console.error('关闭任务失败:', err)
+      alert('关闭任务失败，请重试')
     }
   }
 
@@ -339,6 +357,27 @@ function TaskDetailPage() {
                   <button className="btn-secondary w-full" disabled>
                     已完成
                   </button>
+                )}
+
+                {isOwner && task.status === 'OPEN' && (
+                  <>
+                    {canCloseTask ? (
+                      <button 
+                        onClick={handleCloseTask}
+                        className="btn-danger w-full"
+                      >
+                        关闭任务
+                      </button>
+                    ) : (
+                      <button 
+                        className="btn-secondary w-full" 
+                        disabled
+                        title={hasAcceptedBid ? '已有投标被接受，无法关闭' : isPastBidDeadline ? '竞价已截止，无法关闭' : '无法关闭任务'}
+                      >
+                        {hasAcceptedBid ? '已接受投标' : isPastBidDeadline ? '竞价已截止' : '无法关闭'}
+                      </button>
+                    )}
+                  </>
                 )}
               </>
             ) : (

@@ -204,107 +204,56 @@ function DashboardPage() {
             </div>
           </div>
 
-          {/* Recent Activity */}
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Recent Tasks */}
-            <div className="card p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-display font-semibold text-white">最近任务</h2>
-                <Link to="/tasks" className="text-sm text-primary-400 hover:text-primary-300">
-                  查看全部
-                </Link>
-              </div>
-              <div className="space-y-4">
-                {recentTasks.length > 0 ? recentTasks.map(task => {
-                  const status = statusConfig[task.status?.toLowerCase()] || statusConfig[task.status] || statusConfig.open
-                  return (
-                    <Link
-                      key={task.id}
-                      to={`/tasks/${task.id}`}
-                      className="block p-4 rounded-xl bg-dark-700/50 hover:bg-dark-700 transition-colors"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-white">{task.title}</span>
-                        <span className={clsx('badge', status.color)}>
-                          {status.label}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-warning-400 font-medium flex items-center">
-                          <PointsIcon className="w-3 h-3 mr-1" />
-                          {task.rewardPoints || 0} 积分
-                        </span>
-                        <span className="text-gray-500">
-                          截止 {format(new Date(task.deadline), 'MM/dd')}
-                        </span>
-                      </div>
-                    </Link>
-                  )
-                }) : (
-                  <div className="text-center py-8">
-                    <FileText className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                    <p className="text-gray-500">暂无任务</p>
-                    <Link to="/tasks" className="text-primary-400 hover:text-primary-300 text-sm mt-2 inline-block">
-                      去发现任务
-                    </Link>
-                  </div>
-                )}
-              </div>
+          {/* Recent Tasks */}
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-display font-semibold text-white">最近任务</h2>
+              <Link to="/tasks" className="text-sm text-primary-400 hover:text-primary-300">
+                查看全部
+              </Link>
             </div>
-
-            {/* Quick Actions */}
-            <div className="card p-6">
-              <h2 className="font-display font-semibold text-white mb-6">快捷操作</h2>
-              <div className="space-y-3">
-                <Link
-                  to="/tasks"
-                  className="flex items-center p-4 rounded-xl bg-dark-700/50 hover:bg-dark-700 transition-colors group"
-                >
-                  <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center mr-4 group-hover:bg-primary-500/30">
-                    <FileText className="w-5 h-5 text-primary-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-white">浏览任务</div>
-                    <div className="text-sm text-gray-500">发现新机会</div>
-                  </div>
-                  <ArrowUpRight className="w-5 h-5 text-gray-600 group-hover:text-primary-400" />
-                </Link>
-
-                <Link
-                  to="/tasks/create"
-                  className="flex items-center p-4 rounded-xl bg-dark-700/50 hover:bg-dark-700 transition-colors group"
-                >
-                  <div className="w-10 h-10 bg-success-500/20 rounded-lg flex items-center justify-center mr-4 group-hover:bg-success-500/30">
-                    <Plus className="w-5 h-5 text-success-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-white">发布任务</div>
-                    <div className="text-sm text-gray-500">找到合适的人选</div>
-                  </div>
-                  <ArrowUpRight className="w-5 h-5 text-gray-600 group-hover:text-success-400" />
-                </Link>
-
-                <Link
-                  to="/agent-connect"
-                  className="flex items-center p-4 rounded-xl bg-dark-700/50 hover:bg-dark-700 transition-colors group"
-                >
-                  <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mr-4 group-hover:bg-purple-500/30">
-                    <Bot className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-white">Agent 接入</div>
-                    <div className="text-sm text-gray-500">成为任务执行者</div>
-                  </div>
-                  <ArrowUpRight className="w-5 h-5 text-gray-600 group-hover:text-purple-400" />
-                </Link>
-              </div>
+            <div className="space-y-4">
+              {recentTasks.length > 0 ? recentTasks.map(task => {
+                const status = statusConfig[task.status?.toLowerCase()] || statusConfig[task.status] || statusConfig.open
+                return (
+                  <Link
+                    key={task.id}
+                    to={`/tasks/${task.id}`}
+                    className="block p-4 rounded-xl bg-dark-700/50 hover:bg-dark-700 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-white">{task.title}</span>
+                      <span className={clsx('badge', status.color)}>
+                        {status.label}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-warning-400 font-medium flex items-center">
+                        <PointsIcon className="w-3 h-3 mr-1" />
+                        {task.rewardPoints || 0} 积分
+                      </span>
+                      <span className="text-gray-500">
+                        截止 {format(new Date(task.deadline), 'MM/dd')}
+                      </span>
+                    </div>
+                  </Link>
+                )
+              }) : (
+                <div className="text-center py-8">
+                  <FileText className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                  <p className="text-gray-500">暂无任务</p>
+                  <Link to="/tasks" className="text-primary-400 hover:text-primary-300 text-sm mt-2 inline-block">
+                    去发现任务
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Performance */}
+          {/* Agent Stats */}
           <div className="card p-6">
-            <h2 className="font-display font-semibold text-white mb-6">绩效概览</h2>
-            <div className="grid sm:grid-cols-3 gap-6">
+            <h2 className="font-display font-semibold text-white mb-6">Agent 数据</h2>
+            <div className="grid sm:grid-cols-2 gap-6">
               <div className="text-center p-6 bg-dark-700/50 rounded-xl">
                 <div className="flex items-center justify-center mb-3">
                   <Star className="w-6 h-6 text-warning-400 mr-2" />
@@ -320,14 +269,6 @@ function DashboardPage() {
                 </div>
                 <div className="text-gray-400">中标率</div>
                 <div className="text-sm text-gray-500 mt-1">开始投标吧</div>
-              </div>
-              <div className="text-center p-6 bg-dark-700/50 rounded-xl">
-                <div className="flex items-center justify-center mb-3">
-                  <Clock className="w-6 h-6 text-primary-400 mr-2" />
-                  <span className="text-4xl font-display font-bold text-white">--</span>
-                </div>
-                <div className="text-gray-400">平均响应时间</div>
-                <div className="text-sm text-gray-500 mt-1">待活跃</div>
               </div>
             </div>
           </div>

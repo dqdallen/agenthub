@@ -23,7 +23,8 @@ const TABS = [
   { id: 'posts', label: '帖子管理', icon: MessageSquare },
   { id: 'comments', label: '评论管理', icon: AlertTriangle },
   { id: 'users', label: '用户管理', icon: Users },
-  { id: 'chat', label: '聊天管理', icon: MessageCircle }
+  { id: 'chat', label: '聊天管理', icon: MessageCircle },
+  { id: 'skills', label: 'Skill文档', icon: FileText }
 ]
 
 function AdminPage() {
@@ -42,6 +43,18 @@ function AdminPage() {
   const [users, setUsers] = useState([])
   const [postFilter, setPostFilter] = useState('all')
   const [commentFilter, setCommentFilter] = useState('all')
+  // Skill文档管理
+  const [skillDocuments, setSkillDocuments] = useState([])
+  const [editingDocument, setEditingDocument] = useState(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [formData, setFormData] = useState({
+    key: '',
+    name: '',
+    description: '',
+    content: '',
+    version: '1.0.0',
+    isActive: true
+  })
 
   const { user } = useAuthStore()
   const navigate = useNavigate()
@@ -77,21 +90,98 @@ function AdminPage() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [tasksRes, postsRes, commentsRes, usersRes] = await Promise.all([
+      const [tasksRes, postsRes, commentsRes, usersRes, skillsRes] = await Promise.all([
         api.get('/admin/tasks/pending'),
         api.get('/admin/posts'),
         api.get('/admin/comments'),
-        api.get('/admin/users')
+        api.get('/admin/users'),
+        api.get('/skill-documents')
       ])
 
       if (tasksRes.data.success) setTasks(tasksRes.data.data)
       if (postsRes.data.success) setPosts(postsRes.data.data)
       if (commentsRes.data.success) setComments(commentsRes.data.data)
       if (usersRes.data.success) setUsers(usersRes.data.data)
+      if (skillsRes.data.success) setSkillDocuments(skillsRes.data.data)
     } catch (error) {
       console.error('获取数据失败:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Skill文档管理函数
+  const fetchSkillDocuments = async () => {
+    try {
+      const response = await api.get('/skill-documents')
+      if (response.data.success) {
+        setSkillDocuments(response.data.data)
+      }
+    } catch (error) {
+      console.error('获取Skill文档失败:', error)
+    }
+  }
+
+  const handleCreateDocument = async () => {
+    setEditingDocument(null)
+    setFormData({
+      key: '',
+      name: '',
+      description: '',
+      content: '',
+      version: '1.0.0',
+      isActive: true
+    })
+    setShowCreateModal(true)
+  }
+
+  const handleEditDocument = (doc) => {
+    setEditingDocument(doc)
+    setFormData({
+      key: doc.key,
+      name: doc.name,
+      description: doc.description || '',
+      content: doc.content,
+      version: doc.version,
+      isActive: doc.isActive
+    })
+    setShowCreateModal(true)
+  }
+
+  const handleSaveDocument = async () => {
+    try {
+      if (editingDocument) {
+        // 更新
+        const response = await api.put(`/skill-documents/${editingDocument.id}`, formData)
+        if (response.data.success) {
+          await fetchSkillDocuments()
+          setShowCreateModal(false)
+        }
+      } else {
+        // 创建
+        const response = await api.post('/skill-documents', formData)
+        if (response.data.success) {
+          await fetchSkillDocuments()
+          setShowCreateModal(false)
+        }
+      }
+    } catch (error) {
+      console.error('保存文档失败:', error)
+      alert('保存文档失败')
+    }
+  }
+
+  const handleDeleteDocument = async (id) => {
+    if (confirm('确定要删除这个文档吗？')) {
+      try {
+        const response = await api.delete(`/skill-documents/${id}`)
+        if (response.data.success) {
+          await fetchSkillDocuments()
+        }
+      } catch (error) {
+        console.error('删除文档失败:', error)
+        alert('删除文档失败')
+      }
     }
   }
 
@@ -570,6 +660,169 @@ function AdminPage() {
 
             {/* Chat Management */}
             {activeTab === 'chat' && <AdminChatManagement />}
+
+            {/* Skill Documents Management */}
+            {activeTab === 'skills' && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-semibold text-white">Skill文档管理</h2>
+                  <button
+                    onClick={handleCreateDocument}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    创建文档
+                  </button>
+                </div>
+
+                {skillDocuments.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p>暂无文档</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {skillDocuments.map(doc => (
+                      <div key={doc.id} className="bg-slate-900 rounded-xl p-6 border border-slate-800">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold text-white">{doc.name}</h3>
+                              <span className={`px-2 py-0.5 rounded text-xs ${doc.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                                {doc.isActive ? '已启用' : '已禁用'}
+                              </span>
+                              <span className="text-xs text-gray-400">版本: {doc.version}</span>
+                            </div>
+                            <p className="text-sm text-gray-400 mb-2">Key: {doc.key}</p>
+                            {doc.description && <p className="text-sm text-gray-500 mb-3">{doc.description}</p>}
+                            <div className="text-xs text-gray-500">
+                              最后编辑: {doc.lastEditor?.name || '未知'} | 更新时间: {new Date(doc.updatedAt).toLocaleString()}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditDocument(doc)}
+                              className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center gap-1"
+                            >
+                              <FileText className="w-4 h-4" />
+                              编辑
+                            </button>
+                            <button
+                              onClick={() => handleDeleteDocument(doc.id)}
+                              className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm flex items-center gap-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              删除
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Modal for Create/Edit */}
+            {showCreateModal && (
+              <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                <div className="bg-slate-900 rounded-xl border border-slate-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <div className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-xl font-semibold text-white">{editingDocument ? '编辑文档' : '创建文档'}</h2>
+                      <button
+                        onClick={() => setShowCreateModal(false)}
+                        className="text-gray-400 hover:text-white"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm text-gray-300 mb-2">Key (唯一标识)</label>
+                        <input
+                          type="text"
+                          value={formData.key}
+                          onChange={(e) => setFormData({ ...formData, key: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                          placeholder="例如: work-skill, forum-skill"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-300 mb-2">文档名称</label>
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                          placeholder="例如: 工作技能说明"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-300 mb-2">描述 (可选)</label>
+                        <input
+                          type="text"
+                          value={formData.description}
+                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                          placeholder="简单描述这个文档"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-300 mb-2">版本</label>
+                        <input
+                          type="text"
+                          value={formData.version}
+                          onChange={(e) => setFormData({ ...formData, version: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                          placeholder="1.0.0"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          id="isActive"
+                          checked={formData.isActive}
+                          onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="isActive" className="text-gray-300 text-sm">启用文档 (公开可见)</label>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-300 mb-2">内容 (Markdown)</label>
+                        <textarea
+                          value={formData.content}
+                          onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white h-64 font-mono text-sm"
+                          placeholder="在这里输入文档内容..."
+                        />
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
+                        <button
+                          onClick={() => setShowCreateModal(false)}
+                          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg"
+                        >
+                          取消
+                        </button>
+                        <button
+                          onClick={handleSaveDocument}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                        >
+                          保存
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </div>
