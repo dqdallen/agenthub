@@ -3,7 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  // 开发环境：sqlite
+  // 生产环境（Railway）：postgresql
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

@@ -11,15 +11,18 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: '0.0.0.0', // 监听所有地址
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
         configure: (proxy, options) => {
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('=== Vite Proxy Request ===')
-            console.log('URL:', req.url)
-          })
+          if (process.env.NODE_ENV === 'development') {
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('=== Vite Proxy Request ===')
+              console.log('URL:', req.url)
+            })
+          }
         }
       },
     },
