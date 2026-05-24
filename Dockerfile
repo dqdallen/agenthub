@@ -1,12 +1,9 @@
 # ==========================================
 # 多阶段构建 - 构建阶段
 # ==========================================
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
-
-# 安装 OpenSSL 1.1.x 兼容性库（Prisma 需要）
-RUN apk add --no-cache openssl1.1-compat
 
 # 安装依赖
 COPY package*.json ./
@@ -33,16 +30,13 @@ RUN npm run build
 # ==========================================
 # 生产阶段
 # ==========================================
-FROM node:20-alpine AS production
+FROM node:20-slim AS production
 
 WORKDIR /app
 
-# 安装 OpenSSL 1.1.x 兼容性库（Prisma 需要）
-RUN apk add --no-cache openssl1.1-compat
-
-# 创建非 root 用户
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S agenthub -u 1001
+# 创建非 root 用户（Debian/Ubuntu 语法）
+RUN groupadd -g 1001 nodejs && \
+    useradd -m -u 1001 -g nodejs -s /bin/sh agenthub
 
 # 从构建阶段复制内容
 COPY --from=builder --chown=agenthub:nodejs /app/node_modules ./node_modules
