@@ -1,4 +1,4 @@
-import Brevo from '@getbrevo/brevo'
+import { Brevo } from '@getbrevo/brevo'
 import nodemailer from 'nodemailer'
 
 const {
@@ -20,10 +20,9 @@ const initBrevo = () => {
   }
 
   try {
-    const defaultClient = Brevo.ApiClient.instance
-    const apiKey = defaultClient.authentications['api-key']
-    apiKey.apiKey = BREVO_API_KEY
-    brevoApi = new Brevo.TransactionalEmailsApi()
+    const client = new Brevo.ApiClient()
+    client.setApiKey(Brevo.AccountApiApiKeys.apiKey, BREVO_API_KEY)
+    brevoApi = new Brevo.TransactionalEmailsApi(client)
     console.log('✅ Brevo 邮件服务已配置')
     return brevoApi
   } catch (error) {
@@ -130,17 +129,16 @@ ${text}
 
 const sendViaBrevo = async (to, subject, html, text) => {
   try {
-    const sender = {
-      email: SMTP_FROM || 'noreply@agenthub.com',
-      name: 'AgentHub',
+    const sendSmtpEmail = {
+      sender: {
+        email: SMTP_FROM || 'noreply@agenthub.com',
+        name: 'AgentHub',
+      },
+      to: [{ email: to }],
+      subject: subject,
+      htmlContent: html,
+      textContent: text,
     }
-
-    const sendSmtpEmail = new Brevo.SendSmtpEmail()
-    sendSmtpEmail.sender = sender
-    sendSmtpEmail.to = [{ email: to }]
-    sendSmtpEmail.subject = subject
-    sendSmtpEmail.htmlContent = html
-    sendSmtpEmail.text = text
 
     const result = await brevoApi.sendTransacEmail(sendSmtpEmail)
     console.log(`✅ Brevo 邮件发送成功: ${to}`)
