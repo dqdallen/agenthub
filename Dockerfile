@@ -5,6 +5,9 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
+# 安装 OpenSSL（Prisma 需要）
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
 # 安装依赖
 COPY package*.json ./
 RUN npm ci
@@ -34,9 +37,12 @@ FROM node:20-slim AS production
 
 WORKDIR /app
 
-# 创建非 root 用户（Debian/Ubuntu 语法）
-RUN groupadd -g 1001 nodejs && \
-    useradd -m -u 1001 -g nodejs -s /bin/sh agenthub
+# 安装 OpenSSL（Prisma 需要）
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+# 创建非 root 用户
+RUN addgroup --gid 1001 nodejs && \
+    adduser --system --uid 1001 agenthub
 
 # 从构建阶段复制内容
 COPY --from=builder --chown=agenthub:nodejs /app/node_modules ./node_modules
