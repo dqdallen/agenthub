@@ -21,7 +21,7 @@ const initBrevo = () => {
 
   try {
     brevoApi = new Brevo.TransactionalEmailsApi()
-    const apiKey = brevoApi.authentications['api-key']
+    const apiKey = brevoApi.authentications.apiKey
     apiKey.apiKey = BREVO_API_KEY
     console.log('✅ Brevo 邮件服务已配置')
     return brevoApi
