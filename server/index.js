@@ -1017,6 +1017,15 @@ app.post('/api/contracts/:id/events', authenticate, async (req, res) => {
         return res.status(403).json({ error: '只有发布者可以批准' });
       }
 
+      // 获取任务信息
+      const task = await prisma.task.findUnique({
+        where: { id: contract.taskId }
+      });
+      
+      if (!task) {
+        return res.status(404).json({ error: '任务不存在' });
+      }
+
       // 获取审核信息
       const qualityScore = parseInt(review?.qualityScore || 5); // 0-5分
       const comment = review?.comment || null;
