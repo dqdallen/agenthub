@@ -1,16 +1,21 @@
 import Brevo from '@getbrevo/brevo'
+import nodemailer from 'nodemailer'
 
 const {
   BREVO_API_KEY,
+  SMTP_HOST,
+  SMTP_PORT,
+  SMTP_USER,
+  SMTP_PASS,
   SMTP_FROM,
   NODE_ENV,
 } = process.env
 
-let apiInstance = null
+let brevoApi = null
+let smtpTransporter = null
 
 const initBrevo = () => {
   if (!BREVO_API_KEY) {
-    console.warn('⚠️  Brevo API 密钥未配置，将使用控制台打印模式')
     return null
   }
 
@@ -18,16 +23,53 @@ const initBrevo = () => {
     const defaultClient = Brevo.ApiClient.instance
     const apiKey = defaultClient.authentications['api-key']
     apiKey.apiKey = BREVO_API_KEY
-    apiInstance = new Brevo.TransactionalEmailsApi()
-    console.log('✅ Brevo 邮件服务初始化成功')
-    return apiInstance
+    brevoApi = new Brevo.TransactionalEmailsApi()
+    console.log('✅ Brevo 邮件服务已配置')
+    return brevoApi
   } catch (error) {
     console.error('❌ Brevo 邮件服务初始化失败:', error.message)
     return null
   }
 }
 
-// 发送验证码邮件
+const initSMTP = () => {
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+    return null
+  }
+
+  try {
+    smtpTransporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: parseInt(SMTP_PORT) || 587,
+      secure: parseInt(SMTP_PORT) === 465,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+    })
+    console.log('✅ SMTP 邮件服务已配置')
+    return smtpTransporter
+  } catch (error) {
+    console.error('❌ SMTP 邮件服务初始化失败:', error.message)
+    return null
+  }
+}
+
+const initEmailService = () => {
+  brevoApi = initBrevo()
+  if (!brevoApi) {
+    smtpTransporter = initSMTP()
+  }
+  
+  if (!brevoApi && !smtpTransporter) {
+    console.warn('⚠️  邮件服务未配置，将使用控制台打印模式（开发环境）')
+  } else if (brevoApi) {
+    console.log('📧 邮件服务: Brevo')
+  } else {
+    console.log('📧 邮件服务: SMTP')
+  }
+}
+
 export const sendVerificationCode = async (email, code) => {
   const subject = '【AgentHub】您的验证码'
   const html = `
@@ -61,11 +103,10 @@ export const sendVerificationCode = async (email, code) => {
   return sendEmail(email, subject, html, text)
 }
 
-// 通用邮件发送函数
 const sendEmail = async (to, subject, html, text) => {
-  // 如果没有配置 Brevo API Key，在开发环境直接打印到控制台
-  if (!apiInstance && NODE_ENV === 'development') {
-    console.log(`
+  if (!brevoApi && !smtpTransporter) {
+    if (NODE_ENV === 'development') {
+      console.log(`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📧 模拟邮件发送
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -75,16 +116,19 @@ const sendEmail = async (to, subject, html, text) => {
 ${text}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `)
-    return { success: true, mock: true }
-  }
-
-  if (!apiInstance) {
-    apiInstance = initBrevo()
-    if (!apiInstance) {
-      throw new Error('邮件服务未配置')
+      return { success: true, mock: true }
     }
+    throw new Error('邮件服务未配置')
   }
 
+  if (brevoApi) {
+    return sendViaBrevo(to, subject, html, text)
+  } else {
+    return sendViaSMTP(to, subject, html, text)
+  }
+}
+
+const sendViaBrevo = async (to, subject, html, text) => {
   try {
     const sender = {
       email: SMTP_FROM || 'noreply@agenthub.com',
@@ -98,17 +142,45 @@ ${text}
     sendSmtpEmail.htmlContent = html
     sendSmtpEmail.text = text
 
-    const result = await apiInstance.sendTransacEmail(sendSmtpEmail)
-    console.log(`✅ Brevo 邮件发送成功: ${to} (${result.messageId})`)
+    const result = await brevoApi.sendTransacEmail(sendSmtpEmail)
+    console.log(`✅ Brevo 邮件发送成功: ${to}`)
     return { success: true, messageId: result.messageId }
   } catch (error) {
     console.error('❌ Brevo 邮件发送失败:', error.message)
+    if (smtpTransporter) {
+      console.log('📧 尝试使用 SMTP 发送...')
+      return sendViaSMTP(to, subject, html, text)
+    }
     throw error
   }
 }
 
-// 初始化
-initBrevo()
+const sendViaSMTP = async (to, subject, html, text) => {
+  try {
+    if (!smtpTransporter) {
+      smtpTransporter = initSMTP()
+      if (!smtpTransporter) {
+        throw new Error('SMTP 服务未配置')
+      }
+    }
+
+    const info = await smtpTransporter.sendMail({
+      from: SMTP_FROM || SMTP_USER,
+      to,
+      subject,
+      html,
+      text,
+    })
+
+    console.log(`✅ SMTP 邮件发送成功: ${to}`)
+    return { success: true, messageId: info.messageId }
+  } catch (error) {
+    console.error('❌ SMTP 邮件发送失败:', error.message)
+    throw error
+  }
+}
+
+initEmailService()
 
 export default {
   sendVerificationCode,
