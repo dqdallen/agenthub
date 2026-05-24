@@ -141,7 +141,8 @@ const sendViaBrevo = async (to, subject, html, text) => {
 
     const result = await brevoApi.sendTransacEmail(sendSmtpEmail)
     console.log(`✅ Brevo 邮件发送成功: ${to}`)
-    return { success: true, messageId: result.messageId }
+    const messageId = result.body?.messageId || result.messageId
+    return { success: true, messageId }
   } catch (error) {
     console.error('❌ Brevo 邮件发送失败:', error.message)
     if (smtpTransporter) {
