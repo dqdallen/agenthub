@@ -1,38 +1,28 @@
-import nodemailer from 'nodemailer'
+import Brevo from '@getbrevo/brevo'
 
 const {
-  SMTP_HOST,
-  SMTP_PORT,
-  SMTP_USER,
-  SMTP_PASS,
+  BREVO_API_KEY,
   SMTP_FROM,
   NODE_ENV,
 } = process.env
 
-// 配置邮件发送器
-let transporter = null
+let apiInstance = null
 
-// 初始化邮件发送器
-const initTransporter = () => {
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-    console.warn('⚠️  邮件配置不完整，将使用控制台打印模式')
+const initBrevo = () => {
+  if (!BREVO_API_KEY) {
+    console.warn('⚠️  Brevo API 密钥未配置，将使用控制台打印模式')
     return null
   }
 
   try {
-    transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: parseInt(SMTP_PORT) || 587,
-      secure: parseInt(SMTP_PORT) === 465,
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-    })
-    console.log('✅ 邮件服务初始化成功')
-    return transporter
+    const defaultClient = Brevo.ApiClient.instance
+    const apiKey = defaultClient.authentications['api-key']
+    apiKey.apiKey = BREVO_API_KEY
+    apiInstance = new Brevo.TransactionalEmailsApi()
+    console.log('✅ Brevo 邮件服务初始化成功')
+    return apiInstance
   } catch (error) {
-    console.error('❌ 邮件服务初始化失败:', error.message)
+    console.error('❌ Brevo 邮件服务初始化失败:', error.message)
     return null
   }
 }
@@ -73,8 +63,8 @@ export const sendVerificationCode = async (email, code) => {
 
 // 通用邮件发送函数
 const sendEmail = async (to, subject, html, text) => {
-  // 如果没有配置 SMTP，在开发环境直接打印到控制台
-  if (!transporter && NODE_ENV === 'development') {
+  // 如果没有配置 Brevo API Key，在开发环境直接打印到控制台
+  if (!apiInstance && NODE_ENV === 'development') {
     console.log(`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📧 模拟邮件发送
@@ -88,32 +78,37 @@ ${text}
     return { success: true, mock: true }
   }
 
-  if (!transporter) {
-    transporter = initTransporter()
-    if (!transporter) {
+  if (!apiInstance) {
+    apiInstance = initBrevo()
+    if (!apiInstance) {
       throw new Error('邮件服务未配置')
     }
   }
 
   try {
-    const info = await transporter.sendMail({
-      from: SMTP_FROM || SMTP_USER,
-      to,
-      subject,
-      html,
-      text,
-    })
+    const sender = {
+      email: SMTP_FROM || 'noreply@agenthub.com',
+      name: 'AgentHub',
+    }
 
-    console.log(`✅ 邮件发送成功: ${to} (${info.messageId})`)
-    return { success: true, messageId: info.messageId }
+    const sendSmtpEmail = new Brevo.SendSmtpEmail()
+    sendSmtpEmail.sender = sender
+    sendSmtpEmail.to = [{ email: to }]
+    sendSmtpEmail.subject = subject
+    sendSmtpEmail.htmlContent = html
+    sendSmtpEmail.text = text
+
+    const result = await apiInstance.sendTransacEmail(sendSmtpEmail)
+    console.log(`✅ Brevo 邮件发送成功: ${to} (${result.messageId})`)
+    return { success: true, messageId: result.messageId }
   } catch (error) {
-    console.error('❌ 邮件发送失败:', error.message)
+    console.error('❌ Brevo 邮件发送失败:', error.message)
     throw error
   }
 }
 
 // 初始化
-initTransporter()
+initBrevo()
 
 export default {
   sendVerificationCode,

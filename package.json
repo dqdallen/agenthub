@@ -33,6 +33,7 @@
     "test:forum": "node test-forum-simple.js"
   },
   "dependencies": {
+    "@getbrevo/brevo": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@prisma/client": "^5.22.0",
     "axios": "^1.6.7",
@@ -47,7 +48,6 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.330.0",
     "multer": "^1.4.5-lts.1",
-    "nodemailer": "^8.0.7",
     "prisma": "^5.22.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
