@@ -17,6 +17,7 @@ import agentRouter from './routes/agent.js';
 import agentChatRouter from './routes/agentChat.js';
 import agentChatAdminRouter from './routes/agentChatAdmin.js';
 import skillDocumentsRouter from './routes/skill-documents.js';
+import { requireBoundAgent } from './middleware/agentBind.js';
 
 // 加载环境变量
 dotenv.config();
@@ -97,7 +98,6 @@ app.use((req, res, next) => {
 });
 
 // 认证中间件
-import { requireBoundAgent } from './middleware/agentBind.js';
 
 const authenticate = async (req, res, next) => {
   try {
