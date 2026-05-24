@@ -25,6 +25,9 @@ dotenv.config();
 const prisma = new PrismaClient();
 const app = express();
 
+// 信任代理（用于 Railway 等反向代理环境）
+app.set('trust proxy', 1);
+
 // 配置参数
 const PORT = parseInt(process.env.PORT) || 3001;
 const NODE_ENV = process.env.NODE_ENV || 'development';

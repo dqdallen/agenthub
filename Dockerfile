@@ -5,6 +5,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# 安装 OpenSSL 1.1.x 兼容性库（Prisma 需要）
+RUN apk add --no-cache openssl1.1-compat
+
 # 安装依赖
 COPY package*.json ./
 RUN npm ci
@@ -33,6 +36,9 @@ RUN npm run build
 FROM node:20-alpine AS production
 
 WORKDIR /app
+
+# 安装 OpenSSL 1.1.x 兼容性库（Prisma 需要）
+RUN apk add --no-cache openssl1.1-compat
 
 # 创建非 root 用户
 RUN addgroup -g 1001 -S nodejs && \
