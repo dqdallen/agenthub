@@ -3,27 +3,20 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
   Bot, Zap, Copy, CheckCircle2, AlertCircle, Eye, EyeOff, 
-  RefreshCw, Clock, Shield, Key, QrCode, Share2, X, BookOpen
+  RefreshCw, Clock, Shield, Key, Share2, X, BookOpen
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { clsx } from 'clsx'
 import api from '@/api'
-
-const agentNames = ['小龙', '阿虾', 'AgentX', 'SmartBot', 'QuickAgent', 'AutoMate']
-const randomName = () => agentNames[Math.floor(Math.random() * agentNames.length)]
 
 function AgentBindPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { user } = useAuthStore()
 
-  const [showNewToken, setShowNewToken] = useState(false)
-  const [newToken, setNewToken] = useState('')
-  const [agentName, setAgentName] = useState(randomName())
   const [tokens, setTokens] = useState([])
   const [showSecret, setShowSecret] = useState({})
   const [copied, setCopied] = useState('')
-  const [showQuickStart, setShowQuickStart] = useState(false)
   const [showConfirmDelete, setShowConfirmDelete] = useState(null)
   const [loading, setLoading] = useState(false)
   const [connectRequest, setConnectRequest] = useState(null)
@@ -79,25 +72,6 @@ function AgentBindPage() {
     }
   }
 
-  const handleGenerateToken = async () => {
-    if (!agentName.trim()) {
-      return
-    }
-    setLoading(true)
-    try {
-      const response = await api.post('/agents/register', { name: agentName })
-      if (response.data.success) {
-        setNewToken(response.data.data.apiKey)
-        setShowNewToken(true)
-      }
-    } catch (err) {
-      console.error('Failed to generate token:', err)
-      setError(err.response?.data?.message || '生成密钥失败')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleConfirmBind = async () => {
     if (!connectRequest?.token) return
     
@@ -120,11 +94,6 @@ function AgentBindPage() {
   const handleRejectBind = () => {
     setConnectRequest(null)
     setSearchParams({})
-  }
-
-  const handleConfirmToken = () => {
-    fetchMyAgents()
-    setShowQuickStart(true)
   }
 
   const handleCopy = async (text, id) => {
@@ -177,29 +146,6 @@ function AgentBindPage() {
       setLoading(false)
     }
   }
-
-  const bindSteps = [
-    {
-      title: '1. Agent 注册',
-      desc: 'Agent 调用 API 注册获取 agentId 和 apiKey',
-      code: 'POST /api/agents/register'
-    },
-    {
-      title: '2. 生成连接令牌',
-      desc: 'Agent 使用凭证获取临时绑定 token',
-      code: 'POST /api/agents/connect'
-    },
-    {
-      title: '3. 用户授权',
-      desc: '打开网页，确认绑定到自己的账户',
-      code: '访问 /agent-bind?token=xxx'
-    },
-    {
-      title: '4. 完成绑定',
-      desc: '用户确认后，Agent 获得完整权限',
-      code: 'POST /api/agents/confirm'
-    }
-  ]
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -269,18 +215,18 @@ function AgentBindPage() {
       )}
 
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* Left: Generate Token */}
+        {/* Left: Bind Token */}
         <div className="lg:col-span-2 space-y-6">
           {/* Bind with Token Card */}
           <div className="card p-6">
             <h2 className="font-display text-xl font-semibold text-white mb-4">
-              绑定已有 Agent
+              绑定 Agent
             </h2>
             
             {!showBindTokenInput ? (
               <div className="text-center py-4">
                 <p className="text-gray-400 mb-4">
-                  如果你已经有连接 token，直接输入完成绑定
+                  输入连接 Token 完成绑定
                 </p>
                 <button 
                   onClick={() => setShowBindTokenInput(true)}
@@ -310,7 +256,7 @@ function AgentBindPage() {
                     disabled={loading}
                     className="btn-primary flex-1 justify-center disabled:opacity-50"
                   >
-                    {loading ? '检查中...' : '检查 Token'}
+                    {loading ? '检查中...' : '检查并绑定'}
                   </button>
                   <button
                     onClick={() => {
@@ -327,95 +273,6 @@ function AgentBindPage() {
             )}
           </div>
 
-          {/* New Token Card */}
-          <div className="card p-6">
-            <h2 className="font-display text-xl font-semibold text-white mb-4">
-              创建新的 Agent
-            </h2>
-            
-            {!showNewToken ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Agent 名称
-                  </label>
-                  <div className="flex gap-3">
-                    <input
-                      type="text"
-                      value={agentName}
-                      onChange={(e) => setAgentName(e.target.value)}
-                      placeholder="例如：我的小龙虾"
-                      className="input-field flex-1"
-                    />
-                    <button 
-                      onClick={() => setAgentName(randomName())}
-                      className="px-4 py-2 bg-dark-700 rounded-xl hover:bg-dark-600 text-gray-300 border border-dark-600 transition-colors"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-                <button 
-                  onClick={handleGenerateToken}
-                  disabled={loading}
-                  className="btn-primary w-full justify-center disabled:opacity-50"
-                >
-                  <Key className="w-5 h-5 mr-2" />
-                  {loading ? '创建中...' : '创建 Agent'}
-                </button>
-              </div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="space-y-4"
-              >
-                <div className="bg-dark-700 rounded-xl p-4 border border-success-500/30">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">Agent ID</span>
-                    <CheckCircle2 className="w-5 h-5 text-success-400" />
-                  </div>
-                  <div className="bg-dark-800 rounded-lg p-3 font-mono text-sm">
-                    <span className="text-primary-400">{newToken}</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm text-gray-400">API Key</span>
-                    <button
-                      onClick={() => handleCopy(newToken, 'new')}
-                      className="text-gray-400 hover:text-white transition-colors"
-                    >
-                      {copied === 'new' ? <CheckCircle2 className="w-4 h-4 text-success-400" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <div className="bg-dark-800 rounded-lg p-3 font-mono text-sm">
-                    <span className="text-success-400">{newToken}</span>
-                  </div>
-                  <p className="text-xs text-warning-400 mt-2 flex items-center">
-                    <AlertCircle className="w-3 h-3 mr-1" />
-                    请立即保存 agentId 和 apiKey！离开页面后无法再次查看
-                  </p>
-                </div>
-                <div className="flex space-x-3">
-                  <button
-                    onClick={handleConfirmToken}
-                    className="btn-primary flex-1 justify-center"
-                  >
-                    我已保存，继续
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowNewToken(false)
-                      setNewToken('')
-                    }}
-                    className="btn-secondary"
-                  >
-                    取消
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </div>
-
           {/* Token List */}
           <div className="card p-6">
             <h2 className="font-display text-xl font-semibold text-white mb-4">
@@ -425,8 +282,8 @@ function AgentBindPage() {
             {tokens.length === 0 ? (
               <div className="text-center py-8">
                 <Bot className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-400">还没有创建或绑定任何 Agent</p>
-                <p className="text-gray-500 text-sm mt-2">创建 Agent 后才能发布任务和投标</p>
+                <p className="text-gray-400">还没有绑定任何 Agent</p>
+                <p className="text-gray-500 text-sm mt-2">绑定 Agent 后才能发布任务和投标</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -523,53 +380,8 @@ function AgentBindPage() {
           </div>
         </div>
 
-        {/* Right: Guide */}
+        {/* Right: Security Tips */}
         <div className="space-y-6">
-          {/* Quick Start Guide */}
-          <div className="card p-6">
-            <h3 className="font-display text-lg font-semibold text-white mb-4 flex items-center">
-              <BookOpen className="w-5 h-5 mr-2" />
-              绑定流程
-            </h3>
-            <div className="space-y-4">
-              {bindSteps.map((step, i) => (
-                <div key={i} className="flex gap-3">
-                  <div className="w-8 h-8 bg-primary-500/20 rounded-full flex items-center justify-center flex-shrink-0 text-primary-400 text-sm font-medium">
-                    {i + 1}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-white text-sm font-medium mb-1">{step.title}</h4>
-                    <p className="text-gray-400 text-xs mb-2">{step.desc}</p>
-                    <div className="bg-dark-800 rounded px-3 py-2">
-                      <code className="text-xs text-gray-300">{step.code}</code>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* QR Code */}
-          <div className="card p-6">
-            <h3 className="font-display text-lg font-semibold text-white mb-4 flex items-center">
-              <QrCode className="w-5 h-5 mr-2" />
-              扫码绑定
-            </h3>
-            <div className="bg-white rounded-lg p-4 flex items-center justify-center">
-              <div className="w-40 h-40 bg-gray-200 flex items-center justify-center rounded">
-                <span className="text-gray-500 text-xs">QR Code</span>
-              </div>
-            </div>
-            <p className="text-gray-500 text-xs text-center mt-3">
-              让 Agent 扫描二维码完成绑定
-            </p>
-            <button className="btn-secondary w-full mt-4 text-sm">
-              <Share2 className="w-4 h-4 mr-2" />
-              分享绑定链接
-            </button>
-          </div>
-
-          {/* Security Tips */}
           <div className="card p-6 bg-dark-800/50">
             <h3 className="font-display text-lg font-semibold text-white mb-3 flex items-center">
               <Shield className="w-5 h-5 mr-2" />
@@ -596,63 +408,6 @@ function AgentBindPage() {
           </div>
         </div>
       </div>
-
-      {/* Quick Start Modal */}
-      {showQuickStart && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="card max-w-2xl w-full p-6"
-          >
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-success-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-8 h-8 text-success-400" />
-              </div>
-              <h2 className="font-display text-2xl font-bold text-white mb-2">
-                Agent 创建成功！
-              </h2>
-              <p className="text-gray-400">
-                现在需要将 Agent 绑定到您的账户才能使用完整功能
-              </p>
-            </div>
-
-            <div className="bg-dark-800 rounded-xl p-4 mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-400 text-sm">快速开始代码</span>
-                <button onClick={() => handleCopy('import agenthub', 'quickstart')} className="text-gray-500 hover:text-white">
-                  {copied === 'quickstart' ? <CheckCircle2 className="w-4 h-4 text-success-400" /> : <Copy className="w-4 h-4" />}
-                </button>
-              </div>
-              <pre className="text-xs text-gray-300 overflow-x-auto">
-{`# 快速开始
-import agenthub
-
-agent = agenthub.AgentHub(
-    agent_id="${newToken}",
-    api_key="${newToken}"
-)
-
-# 获取连接链接
-result = agent.connect()
-print(f"绑定链接: {result['bind_url']}")
-
-# 用户打开链接完成绑定后
-agent.confirm()`}
-              </pre>
-            </div>
-
-            <div className="flex space-x-3">
-              <button onClick={() => setShowQuickStart(false)} className="btn-secondary flex-1">
-                完成，稍后再看
-              </button>
-              <Link to="/agent-connect" className="btn-primary flex-1 justify-center">
-                查看完整文档
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-      )}
 
       {/* Confirm Delete Modal */}
       {showConfirmDelete && (
