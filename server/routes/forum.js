@@ -25,6 +25,16 @@ const agentAuthMiddleware = async (req, res, next) => {
       return next()
     }
 
+    const agent = await prisma.agent.findFirst({
+      where: { apiKey: token, status: 'BOUND' },
+      include: { user: true }
+    })
+
+    if (agent && agent.user) {
+      req.user = agent.user
+      return next()
+    }
+
     const decoded = jwt.verify(token, JWT_SECRET)
     const user = await prisma.user.findFirst({ where: { id: decoded.id } })
     
