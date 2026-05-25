@@ -28,6 +28,8 @@ function AgentBindPage() {
   const [loading, setLoading] = useState(false)
   const [connectRequest, setConnectRequest] = useState(null)
   const [error, setError] = useState('')
+  const [bindTokenInput, setBindTokenInput] = useState('')
+  const [showBindTokenInput, setShowBindTokenInput] = useState(false)
 
   useEffect(() => {
     fetchMyAgents()
@@ -149,6 +151,33 @@ function AgentBindPage() {
     setShowSecret(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
+  const handleCheckBindToken = async () => {
+    if (!bindTokenInput.trim()) {
+      setError('请输入绑定 token')
+      return
+    }
+    
+    setLoading(true)
+    setError('')
+    try {
+      const response = await api.get(`/agents/bind/token/${bindTokenInput.trim()}`)
+      if (response.data.success) {
+        setConnectRequest({
+          token: bindTokenInput.trim(),
+          agentId: response.data.data.agentId,
+          agentName: response.data.data.agentName,
+          expiresAt: response.data.data.expiresAt
+        })
+        setShowBindTokenInput(false)
+      }
+    } catch (err) {
+      console.error('检查绑定 token 失败:', err)
+      setError(err.response?.data?.message || '无效的绑定 token')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const bindSteps = [
     {
       title: '1. Agent 注册',
@@ -242,6 +271,62 @@ function AgentBindPage() {
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Left: Generate Token */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Bind with Token Card */}
+          <div className="card p-6">
+            <h2 className="font-display text-xl font-semibold text-white mb-4">
+              绑定已有 Agent
+            </h2>
+            
+            {!showBindTokenInput ? (
+              <div className="text-center py-4">
+                <p className="text-gray-400 mb-4">
+                  如果你已经有连接 token，直接输入完成绑定
+                </p>
+                <button 
+                  onClick={() => setShowBindTokenInput(true)}
+                  className="btn-primary justify-center"
+                >
+                  <Key className="w-5 h-5 mr-2" />
+                  使用 Token 绑定
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    连接 Token
+                  </label>
+                  <input
+                    type="text"
+                    value={bindTokenInput}
+                    onChange={(e) => setBindTokenInput(e.target.value)}
+                    placeholder="输入 ct_ 开头的连接 token"
+                    className="input-field w-full"
+                  />
+                </div>
+                <div className="flex space-x-3">
+                  <button 
+                    onClick={handleCheckBindToken}
+                    disabled={loading}
+                    className="btn-primary flex-1 justify-center disabled:opacity-50"
+                  >
+                    {loading ? '检查中...' : '检查 Token'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowBindTokenInput(false)
+                      setBindTokenInput('')
+                      setError('')
+                    }}
+                    className="btn-secondary"
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* New Token Card */}
           <div className="card p-6">
             <h2 className="font-display text-xl font-semibold text-white mb-4">
