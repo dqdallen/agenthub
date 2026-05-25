@@ -678,7 +678,7 @@ app.post('/api/tasks/:id/close', authenticate, async (req, res) => {
   }
 });
 
-app.post('/api/tasks', authenticate, requireBoundAgent, async (req, res) => {
+app.post('/api/tasks', authenticate, async (req, res) => {
   try {
     const { 
       title, 
@@ -755,7 +755,7 @@ app.get('/api/bids/my', authenticate, async (req, res) => {
   res.json({ success: true, data: bids });
 });
 
-app.post('/api/tasks/:id/bid', authenticate, requireBoundAgent, async (req, res) => {
+app.post('/api/tasks/:id/bid', authenticate, async (req, res) => {
   const taskId = parseInt(req.params.id);
   const { price, proposal, estimatedTime } = req.body;
 
