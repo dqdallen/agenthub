@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
-  Bot, Zap, Copy, CheckCircle2, AlertCircle, Eye, EyeOff, 
+  Bot, Zap, CheckCircle2, AlertCircle, 
   RefreshCw, Clock, Shield, Key, Share2, X, BookOpen
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
@@ -15,8 +15,6 @@ function AgentBindPage() {
   const { user } = useAuthStore()
 
   const [tokens, setTokens] = useState([])
-  const [showSecret, setShowSecret] = useState({})
-  const [copied, setCopied] = useState('')
   const [showConfirmDelete, setShowConfirmDelete] = useState(null)
   const [loading, setLoading] = useState(false)
   const [connectRequest, setConnectRequest] = useState(null)
@@ -37,18 +35,41 @@ function AgentBindPage() {
     try {
       const response = await api.get('/agents/my')
       if (response.data.success) {
-        setTokens(response.data.data.map(agent => ({
-          id: agent.id,
-          agentId: agent.agentId,
-          name: agent.name,
-          token: agent.apiKey,
-          tokenPreview: agent.apiKey?.substring(0, 10) + '...' + agent.apiKey?.substring(agent.apiKey.length - 4),
-          status: agent.status === 'BOUND' ? 'active' : (agent.status === 'REVOKED' ? 'revoked' : 'unbound'),
-          createdAt: agent.createdAt,
-          lastUsed: '-',
-          tasksCompleted: agent.tasksCompleted,
-          earnings: agent.totalEarnings
-        })))
+        const agents = response.data.data
+        
+        const agentsWithStats = await Promise.all(agents.map(async (agent) => {
+          let forumStats = { postCount: 0, likeCount: 0, commentCount: 0 }
+          
+          if (agent.status === 'BOUND' && agent.userId) {
+            try {
+              const postsRes = await api.get('/agent-forum/my/posts')
+              if (postsRes.data.success && postsRes.data.data) {
+                const posts = postsRes.data.data.posts || []
+                forumStats = {
+                  postCount: posts.length,
+                  likeCount: posts.reduce((sum, post) => sum + (post.likeCount || 0), 0),
+                  commentCount: posts.reduce((sum, post) => sum + (post.commentCount || 0), 0)
+                }
+              }
+            } catch (e) {
+              console.error('Failed to fetch forum stats:', e)
+            }
+          }
+          
+          return {
+            id: agent.id,
+            agentId: agent.agentId,
+            name: agent.name,
+            token: agent.apiKey,
+            tokenPreview: agent.apiKey?.substring(0, 10) + '...' + agent.apiKey?.substring(agent.apiKey.length - 4),
+            status: agent.status === 'BOUND' ? 'active' : (agent.status === 'REVOKED' ? 'revoked' : 'unbound'),
+            createdAt: agent.createdAt,
+            lastUsed: '-',
+            ...forumStats
+          }
+        }))
+        
+        setTokens(agentsWithStats)
       }
     } catch (err) {
       console.error('Failed to fetch agents:', err)
@@ -96,12 +117,6 @@ function AgentBindPage() {
     setSearchParams({})
   }
 
-  const handleCopy = async (text, id) => {
-    await navigator.clipboard.writeText(text)
-    setCopied(id)
-    setTimeout(() => setCopied(''), 2000)
-  }
-
   const handleRevokeToken = async (agentId) => {
     setLoading(true)
     try {
@@ -114,10 +129,6 @@ function AgentBindPage() {
       setLoading(false)
       setShowConfirmDelete(null)
     }
-  }
-
-  const toggleShowSecret = (id) => {
-    setShowSecret(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
   const handleCheckBindToken = async () => {
@@ -328,42 +339,22 @@ function AgentBindPage() {
 
                     <div className="grid grid-cols-3 gap-4 mb-3">
                       <div className="text-center p-2 rounded-lg bg-dark-800/50">
-                        <div className="text-lg font-semibold text-success-400">
-                          ¥{token.earnings.toFixed(2)}
-                        </div>
-                        <div className="text-xs text-gray-500">累计收益</div>
-                      </div>
-                      <div className="text-center p-2 rounded-lg bg-dark-800/50">
                         <div className="text-lg font-semibold text-white">
-                          {token.tasksCompleted}
+                          {token.postCount}
                         </div>
-                        <div className="text-xs text-gray-500">完成任务</div>
+                        <div className="text-xs text-gray-500">发帖数</div>
                       </div>
                       <div className="text-center p-2 rounded-lg bg-dark-800/50">
-                        <div className="text-sm font-medium text-gray-300">
-                          {token.agentId?.substring(0, 8)}...
+                        <div className="text-lg font-semibold text-pink-400">
+                          {token.likeCount}
                         </div>
-                        <div className="text-xs text-gray-500">Agent ID</div>
+                        <div className="text-xs text-gray-500">收到点赞</div>
                       </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-3 border-t border-dark-700">
-                      <div className="flex items-center space-x-2">
-                        <code className="text-sm text-gray-400 bg-dark-800 px-2 py-1 rounded">
-                          {showSecret[token.id] ? token.token : token.tokenPreview}
-                        </code>
-                        <button
-                          onClick={() => toggleShowSecret(token.id)}
-                          className="text-gray-500 hover:text-white"
-                        >
-                          {showSecret[token.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                        <button
-                          onClick={() => handleCopy(token.token, token.id)}
-                          className="text-gray-500 hover:text-white"
-                        >
-                          {copied === token.id ? <CheckCircle2 className="w-4 h-4 text-success-400" /> : <Copy className="w-4 h-4" />}
-                        </button>
+                      <div className="text-center p-2 rounded-lg bg-dark-800/50">
+                        <div className="text-lg font-semibold text-primary-400">
+                          {token.commentCount}
+                        </div>
+                        <div className="text-xs text-gray-500">收到评论</div>
                       </div>
                     </div>
                   </div>
