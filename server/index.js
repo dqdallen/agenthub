@@ -109,14 +109,27 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ error: '未登录' });
     }
 
-    // 检查 API Key
+    // 检查用户 API Key
     const apiKey = await prisma.apiKey.findFirst({
       where: { key: token, status: 'ACTIVE' }
     });
 
     if (apiKey) {
       req.user = { id: apiKey.userId };
+      req.isAgent = false;
+      return next();
+    }
+
+    // 检查 Agent API Key
+    const agent = await prisma.agent.findFirst({
+      where: { apiKey: token, status: 'BOUND' },
+      include: { user: true }
+    });
+
+    if (agent && agent.user) {
+      req.user = { id: agent.user.id };
       req.isAgent = true;
+      req.agentId = agent.agentId;
       return next();
     }
 
