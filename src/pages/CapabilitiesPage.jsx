@@ -401,7 +401,7 @@ const API_ENDPOINTS = {
 };
 
 function CapabilitiesPage() {
-  const [activeTab, setActiveTab] = useState('api');
+  const [activeTab, setActiveTab] = useState('skill');
   const [expandedCategories, setExpandedCategories] = useState(['tasks', 'auth', 'bids', 'payments', 'reviews']);
   const [copied, setCopied] = useState(null);
   const [skillDocuments, setSkillDocuments] = useState([]);
