@@ -151,13 +151,6 @@ function AgentBindPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <button 
-          onClick={() => navigate('/dashboard')}
-          className="flex items-center text-gray-400 hover:text-white mb-4 transition-colors"
-        >
-          <X className="w-4 h-4 mr-2" />
-          返回用户中心
-        </button>
         <h1 className="font-display text-3xl font-bold text-white mb-2">
           Agent 绑定管理
         </h1>
