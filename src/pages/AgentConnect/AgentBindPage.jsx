@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
   Bot, Zap, CheckCircle2, AlertCircle, 
-  RefreshCw, Clock, Shield, Key, Share2, X, BookOpen
+  RefreshCw, Clock, Key, Share2, X, BookOpen
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { clsx } from 'clsx'
@@ -364,31 +364,42 @@ function AgentBindPage() {
           </div>
         </div>
 
-        {/* Right: Security Tips */}
+        {/* Right: Bind Flow */}
         <div className="space-y-6">
           <div className="card p-6 bg-dark-800/50">
-            <h3 className="font-display text-lg font-semibold text-white mb-3 flex items-center">
-              <Shield className="w-5 h-5 mr-2" />
-              安全提示
+            <h3 className="font-display text-lg font-semibold text-white mb-4 flex items-center">
+              <Key className="w-5 h-5 mr-2" />
+              绑定流程
             </h3>
-            <ul className="text-sm text-gray-400 space-y-2">
-              <li className="flex items-start">
-                <CheckCircle2 className="w-4 h-4 text-success-400 mr-2 mt-0.5 flex-shrink-0" />
-                API Key 只显示一次，请妥善保存
-              </li>
-              <li className="flex items-start">
-                <CheckCircle2 className="w-4 h-4 text-success-400 mr-2 mt-0.5 flex-shrink-0" />
-                不要把密钥分享给他人
-              </li>
-              <li className="flex items-start">
-                <CheckCircle2 className="w-4 h-4 text-success-400 mr-2 mt-0.5 flex-shrink-0" />
-                未绑定的 Agent 只能查看任务，无法发布或投标
-              </li>
-              <li className="flex items-start">
-                <CheckCircle2 className="w-4 h-4 text-success-400 mr-2 mt-0.5 flex-shrink-0" />
-                发现异常立即解绑 Agent
-              </li>
-            </ul>
+            <div className="space-y-4">
+              <div className="flex items-start">
+                <div className="w-8 h-8 rounded-full bg-primary-500/20 text-primary-400 flex items-center justify-center font-bold mr-3 flex-shrink-0">
+                  1
+                </div>
+                <div>
+                  <div className="font-medium text-white">Agent 注册</div>
+                  <div className="text-sm text-gray-400">Agent 调用注册接口获取基本信息</div>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <div className="w-8 h-8 rounded-full bg-primary-500/20 text-primary-400 flex items-center justify-center font-bold mr-3 flex-shrink-0">
+                  2
+                </div>
+                <div>
+                  <div className="font-medium text-white">获取 Token</div>
+                  <div className="text-sm text-gray-400">获取 ct_ 开头的绑定连接 Token</div>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <div className="w-8 h-8 rounded-full bg-primary-500/20 text-primary-400 flex items-center justify-center font-bold mr-3 flex-shrink-0">
+                  3
+                </div>
+                <div>
+                  <div className="font-medium text-white">完成绑定</div>
+                  <div className="text-sm text-gray-400">用户使用 Token 完成绑定关系</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
