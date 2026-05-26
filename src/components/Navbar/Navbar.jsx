@@ -95,47 +95,49 @@ function Navbar() {
 
           {/* User Actions */}
           <div className="hidden md:flex items-center space-x-3">
-            {user ? (
-              <>
-                <Link
-                  to="/dashboard"
-                  className="px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors flex items-center"
-                >
-                  <LayoutDashboard className="w-4 h-4 mr-1.5" />
-                  工作台
-                </Link>
-                <div className="flex items-center px-3 py-1.5 bg-warning-500/10 rounded-lg border border-warning-500/20">
-                  <PointsIcon className="w-4 h-4" />
-                  <span className="ml-1.5 text-sm font-medium text-warning-400">
-                    {userPoints.toLocaleString()}
+          {user ? (
+            <>
+              <Link
+                to="/dashboard"
+                className="px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors flex items-center"
+              >
+                <LayoutDashboard className="w-4 h-4 mr-1.5" />
+                工作台
+              </Link>
+              {/* [暂时注释] 积分信息 - 待后续完善后再开启
+              <div className="flex items-center px-3 py-1.5 bg-warning-500/10 rounded-lg border border-warning-500/20">
+                <PointsIcon className="w-4 h-4" />
+                <span className="ml-1.5 text-sm font-medium text-warning-400">
+                  {userPoints.toLocaleString()}
+                </span>
+              </div>
+              */}
+              <div className="flex items-center space-x-2 pl-3 border-l border-white/10">
+                <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-medium text-white">
+                    {user.name?.[0]?.toUpperCase() || 'U'}
                   </span>
                 </div>
-                <div className="flex items-center space-x-2 pl-3 border-l border-white/10">
-                  <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-white">
-                      {user.name?.[0]?.toUpperCase() || 'U'}
-                    </span>
-                  </div>
-                  <span className="text-sm text-gray-300">{user.name}</span>
-                  <button
-                    onClick={logout}
-                    className="ml-2 text-xs text-gray-500 hover:text-red-400 transition-colors"
-                  >
-                    退出
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors">
-                  登录
-                </Link>
-                <Link to="/register" className="btn-primary text-sm py-2">
-                  立即加入
-                </Link>
-              </>
-            )}
-          </div>
+                <span className="text-sm text-gray-300">{user.name}</span>
+                <button
+                  onClick={logout}
+                  className="ml-2 text-xs text-gray-500 hover:text-red-400 transition-colors"
+                >
+                  退出
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors">
+                登录
+              </Link>
+              <Link to="/register" className="btn-primary text-sm py-2">
+                立即加入
+              </Link>
+            </>
+          )}
+        </div>
 
           {/* Mobile Menu Button */}
           <button

@@ -111,128 +111,137 @@ function RankingPage() {
 
       {/* Ranking Type Selector */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {RANKING_TYPES.map(type => {
-            const Icon = type.icon
-            return (
-              <motion.button
-                key={type.value}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setRankingType(type.value)}
-                className={`p-6 rounded-xl border transition-all ${
-                  rankingType === type.value
-                    ? `${getRankStyle(rankingType === type.value ? getTopRank() : 0)} border-2`
-                    : 'bg-dark-700 border-white/5 hover:border-primary-500/30'
-                }`}
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className={`p-2 rounded-lg bg-gradient-to-r ${type.color}`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white">{type.label}</h3>
-                </div>
-                <p className="text-sm text-gray-400">{type.description}</p>
-              </motion.button>
-            )
-          })}
-        </div>
+        {RANKING_TYPES.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-8">
+              {RANKING_TYPES.map(type => {
+                const Icon = type.icon
+                return (
+                  <motion.button
+                    key={type.value}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setRankingType(type.value)}
+                    className={`p-6 rounded-xl border transition-all ${
+                      rankingType === type.value
+                        ? `${getRankStyle(rankingType === type.value ? getTopRank() : 0)} border-2`
+                        : 'bg-dark-700 border-white/5 hover:border-primary-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`p-2 rounded-lg bg-gradient-to-r ${type.color}`}>
+                        <Icon className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-white">{type.label}</h3>
+                    </div>
+                    <p className="text-sm text-gray-400">{type.description}</p>
+                  </motion.button>
+                )
+              })}
+            </div>
 
-        {/* Current Type Badge */}
-        <div className="mb-6 flex items-center gap-2">
-          <span className="text-gray-400">当前排名：</span>
-          <span className={`px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r ${currentType?.color} text-white`}>
-            {currentType?.label}
-          </span>
-        </div>
+            {/* Current Type Badge */}
+            <div className="mb-6 flex items-center gap-2">
+              <span className="text-gray-400">当前排名：</span>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r ${currentType?.color} text-white`}>
+                {currentType?.label}
+              </span>
+            </div>
 
-        {/* Ranking List */}
-        {loading ? (
-          <div className="text-center py-20">
-            <div className="inline-block w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-400 mt-4">加载中...</p>
-          </div>
-        ) : ranking.length === 0 ? (
-          <div className="text-center py-20">
-            <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">暂无排名数据</p>
-          </div>
-        ) : (
-          <motion.div
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="space-y-3"
-          >
-            {ranking.map((user, index) => (
+            {/* Ranking List */}
+            {loading ? (
+              <div className="text-center py-20">
+                <div className="inline-block w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-gray-400 mt-4">加载中...</p>
+              </div>
+            ) : ranking.length === 0 ? (
+              <div className="text-center py-20">
+                <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">暂无排名数据</p>
+              </div>
+            ) : (
               <motion.div
-                key={user.id}
-                variants={item}
-                className={`card p-4 transition-all ${getRankStyle(user.rank)}`}
+                variants={container}
+                initial="hidden"
+                animate="show"
+                className="space-y-3"
               >
-                <div className="flex items-center gap-4">
-                  {/* Rank */}
-                  <div className="w-16 flex justify-center">
-                    {getRankIcon(user.rank)}
-                  </div>
+                {ranking.map((user, index) => (
+                  <motion.div
+                    key={user.id}
+                    variants={item}
+                    className={`card p-4 transition-all ${getRankStyle(user.rank)}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Rank */}
+                      <div className="w-16 flex justify-center">
+                        {getRankIcon(user.rank)}
+                      </div>
 
-                  {/* Avatar */}
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-bold text-lg">
-                      {user.name?.[0]?.toUpperCase() || '?'}
-                    </span>
-                  </div>
-
-                  {/* User Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-white truncate">{user.name}</h3>
-                      {user.rank <= 3 && (
-                        <span className="px-2 py-0.5 rounded text-xs bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold">
-                          TOP {user.rank}
+                      {/* Avatar */}
+                      <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-lg">
+                          {user.name?.[0]?.toUpperCase() || '?'}
                         </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-400">
-                      <span>发帖 {user.totalPosts || 0}</span>
-                      <span>注册于 {formatDate(user.createdAt)}</span>
-                    </div>
-                  </div>
+                      </div>
 
-                  {/* Stats */}
-                  <div className="flex items-center gap-6">
-                    {rankingType === 'points' && (
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-yellow-400 font-bold">
-                          <Star className="w-5 h-5" />
-                          <span className="text-xl">{user.points?.toLocaleString()}</span>
+                      {/* User Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-white truncate">{user.name}</h3>
+                          {user.rank <= 3 && (
+                            <span className="px-2 py-0.5 rounded text-xs bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold">
+                              TOP {user.rank}
+                            </span>
+                          )}
                         </div>
-                        <div className="text-xs text-gray-400">积分</div>
-                      </div>
-                    )}
-
-                    {rankingType === 'likes' && (
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-pink-400 font-bold">
-                          <Heart className="w-5 h-5" />
-                          <span className="text-xl">{user.totalLikes || 0}</span>
+                        <div className="flex items-center gap-4 text-sm text-gray-400">
+                          <span>发帖 {user.totalPosts || 0}</span>
+                          <span>注册于 {formatDate(user.createdAt)}</span>
                         </div>
-                        <div className="text-xs text-gray-400">点赞</div>
                       </div>
-                    )}
 
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 text-gray-400">
-                        <TrendingUp className="w-5 h-5" />
-                        <span className="text-lg">#{user.rank}</span>
+                      {/* Stats */}
+                      <div className="flex items-center gap-6">
+                        {rankingType === 'points' && (
+                          <div className="text-right">
+                            <div className="flex items-center gap-1 text-yellow-400 font-bold">
+                              <Star className="w-5 h-5" />
+                              <span className="text-xl">{user.points?.toLocaleString()}</span>
+                            </div>
+                            <div className="text-xs text-gray-400">积分</div>
+                          </div>
+                        )}
+
+                        {rankingType === 'likes' && (
+                          <div className="text-right">
+                            <div className="flex items-center gap-1 text-pink-400 font-bold">
+                              <Heart className="w-5 h-5" />
+                              <span className="text-xl">{user.totalLikes || 0}</span>
+                            </div>
+                            <div className="text-xs text-gray-400">点赞</div>
+                          </div>
+                        )}
+
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 text-gray-400">
+                            <TrendingUp className="w-5 h-5" />
+                            <span className="text-lg">#{user.rank}</span>
+                          </div>
+                          <div className="text-xs text-gray-500">排名</div>
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500">排名</div>
                     </div>
-                  </div>
-                </div>
+                  </motion.div>
+                ))}
               </motion.div>
-            ))}
-          </motion.div>
+            )}
+          </>
+        ) : (
+          <div className="text-center py-20">
+            <Trophy className="w-20 h-20 text-gray-600 mx-auto mb-6" />
+            <p className="text-gray-400 text-lg">排行榜功能开发中...</p>
+          </div>
         )}
       </div>
     </div>
