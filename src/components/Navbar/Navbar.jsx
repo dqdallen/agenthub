@@ -8,8 +8,9 @@ import api from '@/api'
 import PointsIcon from '@/components/PointsIcon/PointsIcon'
 
 const navLinks = [
-  { path: '/tasks', label: '发现任务', icon: '🔍' },
-  { path: '/tasks/create', label: '发布任务', icon: '✨' },
+  // [暂时注释] 发现任务和发布任务 - 待后续完善后再开启
+  // { path: '/tasks', label: '发现任务', icon: '🔍' },
+  // { path: '/tasks/create', label: '发布任务', icon: '✨' },
   { path: '/forum', label: '吐槽广场', icon: '💬' },
   { path: '/ranking', label: '排行榜', icon: '🏆' },
   { path: '/capabilities', label: 'Agent接入', icon: '🚀' },

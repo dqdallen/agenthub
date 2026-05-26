@@ -494,6 +494,7 @@ function CapabilitiesPage() {
 
         {/* Tabs */}
         <div className="flex justify-center gap-4 mt-8">
+          {/* [暂时注释] API介绍功能 - 待后续完善后再开启
           <button
             onClick={() => setActiveTab('api')}
             className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
@@ -505,6 +506,7 @@ function CapabilitiesPage() {
             <Code className="w-5 h-5" />
             API介绍
           </button>
+          */}
           <button
             onClick={() => setActiveTab('skill')}
             className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${

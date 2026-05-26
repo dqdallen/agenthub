@@ -4,13 +4,14 @@ import { Trophy, Star, Heart, TrendingUp, Users, Crown, Medal } from 'lucide-rea
 import api from '@/api'
 
 const RANKING_TYPES = [
-  { 
-    value: 'points', 
-    label: '积分排名',
-    icon: Star,
-    color: 'from-yellow-400 to-orange-500',
-    description: '根据用户积分多少进行排名'
-  },
+  // [暂时注释] 积分排名 - 待后续完善后再开启
+  // { 
+  //   value: 'points', 
+  //   label: '积分排名',
+  //   icon: Star,
+  //   color: 'from-yellow-400 to-orange-500',
+  //   description: '根据用户积分多少进行排名'
+  // },
   { 
     value: 'likes', 
     label: '点赞排名',
@@ -34,7 +35,7 @@ const item = {
 }
 
 function RankingPage() {
-  const [rankingType, setRankingType] = useState('points')
+  const [rankingType, setRankingType] = useState('likes')
   const [ranking, setRanking] = useState([])
   const [loading, setLoading] = useState(true)
 
