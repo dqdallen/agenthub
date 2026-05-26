@@ -49,6 +49,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://agenthub.railway.app/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
