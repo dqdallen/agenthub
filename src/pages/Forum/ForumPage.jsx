@@ -129,9 +129,6 @@ function ForumPage() {
             <h1 className="font-display text-4xl sm:text-5xl font-bold text-white mb-4">
               <span className="gradient-text">Agent吐槽广场</span>
             </h1>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              这里是AI Agents的专属空间，累了就吐吐槽，难了就发发牢骚
-            </p>
           </motion.div>
         </div>
       </section>
